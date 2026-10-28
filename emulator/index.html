@@ -19,6 +19,9 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:12px/1
 #app{display:grid;grid-template-columns:minmax(320px,42%) 1fr;height:100%}
 #side{background:var(--side);border-right:1px solid #111;display:flex;flex-direction:column;min-width:0;overflow:auto}
 #side header{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #111}
+#liveReload{color:var(--accent);background:transparent;border:0;padding:2px 4px;font-size:11px}
+#liveReload.paused{color:var(--dim)}#liveReload.failed{color:var(--err)}
+#liveReload.flash{animation:liveFlash .6s ease-out}@keyframes liveFlash{from{background:var(--accent);color:var(--bg)}to{background:transparent}}
 #side h1{font-size:12px;font-weight:600;margin:0;letter-spacing:.08em;flex:1}
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
 .bar label{color:var(--dim)}
@@ -89,7 +92,7 @@ details.help{margin:8px 12px 10px;color:var(--dim)}details.help summary{cursor:p
 <body>
 <div id="app">
 <aside id="side">
-  <header><h1>ONMK VIDEOSYNTH 01</h1><button id="fsBtn" title="F">fullscreen</button></header>
+  <header><h1>ONMK VIDEOSYNTH 01</h1><button id="liveReload" title="Live reload: click to pause">live ●</button><button id="fsBtn" title="F">fullscreen</button></header>
   <div class="bar">
     <label>shader <select id="shaderSel"></select></label>
     <label>render <select id="resSel"><option value="320">320×240 (4:3)</option><option value="640">640×480 (4:3)</option><option value="426">426×240 (16:9)</option><option value="854">854×480 (16:9)</option></select></label>
@@ -136,7 +139,7 @@ details.help{margin:8px 12px 10px;color:var(--dim)}details.help summary{cursor:p
 const KEYMAP_KEYS=['q','w','e','r','a','s','d','f'];   // keys box, panel order (row by row)
 const KEYMAP_TAP=['1','2','3','4'];
 // GOOD KNOB (the encoder): every detent makes the picture a little better, forever. u_good = turns, unbounded.
-const S={knob:new Array(6).fill(.5),fader:new Array(5).fill(.5),good:0,shader:0,power:true,res:320,nodes:{},view:null,cables:[]};
+const S={knob:new Array(6).fill(.5),fader:new Array(5).fill(.5),good:0,shader:0,power:true,res:320,liveReload:true,nodes:{},view:null,cables:[]};
 const keyState=[...Array(8)].map(()=>({held:false,rel:-1e9}));
 const noiseState={held:false,rel:-1e9};
 let bootAt=-1e9,taps=[],beatPeriod=.5,beatOrigin=0,lastTouched='—',simTime=0;
@@ -146,8 +149,7 @@ const now=()=>performance.now()/1000;
 const env=k=>k.held?1:Math.max(0,1-(now()-k.rel)/.2);
 // Working shader list = shaders/index.js plus edits made in the editor (kept in localStorage until saved).
 // Each entry: {name, src, fileName} — fileName links it to its shaders/index.js original (null = made here).
-const FILE_SHADERS=window.SHADERS||[];
-const fileSrc=n=>FILE_SHADERS.find(f=>f.name===n)?.src;
+const FILE_SHADERS=JSON.parse(JSON.stringify(window.SHADERS||[]));
 const shaders=(()=>{
   const lib=Array.isArray(S.lib)?S.lib.filter(e=>e&&typeof e.src==='string'):[];
   const J=JSON.stringify,fresh=f=>({name:f.name,src:f.src,map:JSON.parse(J(f.map||{})),fileName:f.name,base:f.src,baseMap:J(f.map||{})});
@@ -484,7 +486,7 @@ function onShaderChange(){if(!shaders.length)return;shaderSel.value=curShader();
 const code=document.getElementById('code'),gutter=document.getElementById('gutter'),edErr=document.getElementById('edErr');
 const edName=document.getElementById('edName'),edStatus=document.getElementById('edStatus');
 const isModified=i=>{const s=shaders[i];if(!s.fileName)return true;const f=FILE_SHADERS.find(f=>f.name===s.fileName);
-  return f.src!==s.src||s.name!==s.fileName||JSON.stringify(f.map||{})!==JSON.stringify(s.map||{})};
+  return !f||f.src!==s.src||s.name!==s.fileName||JSON.stringify(f.map||{})!==JSON.stringify(s.map||{})};
 function renderGutter(){
   const n=code.value.split('\n').length,bad=new Set(progs[curShader()]?.lines||[]);let h='';
   for(let i=1;i<=n;i++)h+=(bad.has(i)?`<span class="e">${i}</span>`:i)+'\n';gutter.innerHTML=h;gutter.scrollTop=code.scrollTop;
@@ -512,13 +514,17 @@ function renderStatus(){
   const i=curShader(),p=progs[i];edErr.textContent=p.err||'';
   edStatus.className='st '+(p.err?'bad':isModified(i)?'mod':'ok');
   edStatus.textContent=p.err?`✕ ${p.lines.length} error${p.lines.length===1?'':'s'}`+(p.p?' (last good still running)':''):isModified(i)?'● edited (not saved to file)':'✓ compiled';
+  if(shaders[i].diskChanged){edStatus.classList.add('mod');edStatus.textContent+=' · ⚠ file changed — revert to load it'}
   document.getElementById('edRevert').disabled=!shaders[i].fileName||!isModified(i);
   document.getElementById('edDel').disabled=!!shaders[i].fileName||shaders.length<2;
 }
 function loadEditor(){const s=shaders[curShader()];if(!s)return;if(code.value!==s.src)code.value=s.src;edName.value=s.name;learnParam=null;desk.classList.remove('learning');renderGutter();renderStatus();renderMap();renderBadges()}
-let edT=0;
-code.addEventListener('input',()=>{renderGutter();clearTimeout(edT);edT=setTimeout(()=>{
-  const i=curShader();shaders[i].src=code.value;progs[i]=build(code.value,progs[i]);saveLib();renderGutter();renderStatus();fillShaderSel();onShaderChangeOverlay();renderMap();renderBadges()},250)});
+let edT=0,lastCodeInput=-Infinity,pendingEdit=null;
+function flushEditor(){if(pendingEdit){clearTimeout(edT);const edit=pendingEdit;pendingEdit=null;edit()}}
+code.addEventListener('input',()=>{lastCodeInput=now();renderGutter();clearTimeout(edT);
+  const i=curShader(),src=code.value;
+  pendingEdit=()=>{shaders[i].src=src;progs[i]=build(src,progs[i]);saveLib();renderGutter();renderStatus();fillShaderSel();onShaderChangeOverlay();renderMap();renderBadges()};
+  edT=setTimeout(flushEditor,250)});
 const onShaderChangeOverlay=()=>{const p=progs[curShader()];errEl.style.display=p.p?'none':'block';errEl.textContent=p.p?'':p.err};
 code.addEventListener('scroll',()=>{gutter.scrollTop=code.scrollTop;hl.scrollTop=code.scrollTop;hl.scrollLeft=code.scrollLeft});
 code.addEventListener('keydown',e=>{
@@ -548,7 +554,9 @@ const uniqueName=base=>{let n=base,k=2;while(shaders.some(s=>s.name===n))n=`${ba
 document.getElementById('edNew').onclick=()=>addShader(uniqueName('NEW'),TEMPLATE);
 document.getElementById('edDup').onclick=()=>{const s=shaders[curShader()];addShader(uniqueName(s.name+' COPY'),s.src)};
 document.getElementById('edRevert').onclick=()=>{const i=curShader(),s=shaders[i];if(!s.fileName||!confirm(`Revert ${s.name} to the version in shaders/index.js?`))return;
-  s.src=fileSrc(s.fileName);s.name=s.fileName;progs[i]=build(s.src,progs[i]);saveLib();fillShaderSel();onShaderChange()};
+  const f=FILE_SHADERS.find(f=>f.name===s.fileName);if(!f)return;
+  clearTimeout(edT);pendingEdit=null;
+  Object.assign(s,{src:f.src,name:f.name,map:JSON.parse(JSON.stringify(f.map||{})),base:f.src,baseMap:JSON.stringify(f.map||{}),diskChanged:false});progs[i]=build(s.src,progs[i]);saveLib();fillShaderSel();onShaderChange()};
 document.getElementById('edDel').onclick=()=>{const i=curShader();if(shaders[i].fileName||shaders.length<2||!confirm(`Delete ${shaders[i].name}?`))return;
   shaders.splice(i,1);const [p]=progs.splice(i,1);p.p&&gl.deleteProgram(p.p);S.shader=Math.min(i,shaders.length-1);saveLib();fillShaderSel();onShaderChange()};
 
@@ -606,7 +614,7 @@ async function saveIndexJs(){
       if(!fileHandle)fileHandle=await showSaveFilePicker({suggestedName:'index.js',types:[{description:'JavaScript',accept:{'text/javascript':['.js']}}]});
       const w=await fileHandle.createWritable();await w.write(txt);await w.close();
       // what is on disk now matches the editor: make it the new baseline
-      FILE_SHADERS.length=0;for(const s of shaders){FILE_SHADERS.push({name:s.name,src:s.src,map:JSON.parse(JSON.stringify(s.map||{}))});s.fileName=s.name;s.base=s.src;s.baseMap=JSON.stringify(s.map||{})}
+      FILE_SHADERS.length=0;for(const s of shaders){FILE_SHADERS.push({name:s.name,src:s.src,map:JSON.parse(JSON.stringify(s.map||{}))});s.fileName=s.name;s.base=s.src;s.baseMap=JSON.stringify(s.map||{});s.diskChanged=false}
       saveLib();fillShaderSel();renderStatus();edStatus.className='st ok';edStatus.textContent=`✓ saved to ${fileHandle.name}`;return}
   }catch(e){if(e.name==='AbortError')return;console.warn(e)}
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/javascript'}));a.download='index.js';a.click();
@@ -614,6 +622,143 @@ async function saveIndexJs(){
 }
 document.getElementById('edSave').onclick=saveIndexJs;
 fillShaderSel();onShaderChange();
+
+// ---------- file:// live reload (script tags work where fetch does not) ----------
+const fileSignature=entries=>JSON.stringify(entries.map(({name,src,map})=>({name,src,map:map||{}})));
+let loadedSignature=fileSignature(FILE_SHADERS),liveError='',liveBusy=false,editorRefresh=0;
+const liveIndicator=document.getElementById('liveReload');
+function renderLive(applied=false){
+  liveIndicator.textContent=S.liveReload?(liveError?'live ✕':'live ●'):'live ○';
+  liveIndicator.className=S.liveReload?(liveError?'failed':''):'paused';
+  liveIndicator.title=(liveError?liveError+' · ':'')+(S.liveReload?'Click to pause live reload':'Live reload paused — click to resume');
+  liveIndicator.setAttribute('aria-pressed',String(!!S.liveReload));
+  if(applied){void liveIndicator.offsetWidth;liveIndicator.classList.add('flash')}
+}
+function refreshLiveEditor(entry){
+  clearTimeout(editorRefresh);
+  if(shaders[curShader()]!==entry)return;
+  if(document.activeElement!==code||now()-lastCodeInput>=2)loadEditor();
+  else{
+    renderStatus();renderMap();renderBadges();
+    editorRefresh=setTimeout(()=>refreshLiveEditor(entry),Math.max(1,(2-(now()-lastCodeInput))*1000));
+  }
+  onShaderChangeOverlay();
+}
+function applyFileShaders(payload){
+  // Validate the whole payload before touching the last good file or working library.
+  if(!Array.isArray(payload)||!payload.every(f=>f&&typeof f.name==='string'&&f.name.trim()&&typeof f.src==='string'&&
+    (f.map===undefined||(f.map!==null&&typeof f.map==='object'&&!Array.isArray(f.map)&&Object.values(f.map).every(m=>
+      m&&typeof m==='object'&&typeof m.src==='string'&&(m.inv===undefined||typeof m.inv==='boolean')))))||
+    new Set(payload.map(f=>f.name)).size!==payload.length)throw new Error('Invalid shaders/index.js payload');
+  const incoming=JSON.parse(JSON.stringify(payload)),signature=fileSignature(incoming);
+  if(signature===loadedSignature)return false;
+  flushEditor(); // Include the final 250 ms of typing in the modification check.
+  const selected=shaders[curShader()],selectedName=selected?.name,selectedBefore=JSON.stringify(selected);
+  const fresh=f=>({name:f.name,src:f.src,map:JSON.parse(JSON.stringify(f.map||{})),fileName:f.name,base:f.src,baseMap:JSON.stringify(f.map||{}),diskChanged:false});
+  for(const s of shaders){
+    if(!s.fileName)continue;
+    const f=incoming.find(f=>f.name===s.fileName);
+    if(!f){s.fileName=null;s.diskChanged=false;continue}
+    const old=FILE_SHADERS.find(f=>f.name===s.fileName);
+    if(old&&fileSignature([old])===fileSignature([f]))continue;
+    if(s.base===undefined||(s.src===s.base&&JSON.stringify(s.map||{})===s.baseMap&&s.name===s.fileName)){
+      Object.assign(s,fresh(f));const i=shaders.indexOf(s);progs[i]=build(s.src,progs[i]);
+    }else s.diskChanged=true;
+  }
+  for(const f of incoming)if(!shaders.some(s=>s.fileName===f.name)){shaders.push(fresh(f));progs.push(build(f.src,null))}
+  FILE_SHADERS.splice(0,FILE_SHADERS.length,...incoming);
+  loadedSignature=signature;
+  const selectedIndex=shaders.indexOf(selected);
+  S.shader=selectedIndex>=0?selectedIndex:Math.max(0,shaders.findIndex(s=>s.name===selectedName));
+  saveLib();fillShaderSel();if(JSON.stringify(selected)!==selectedBefore)refreshLiveEditor(shaders[curShader()]);
+  return true;
+}
+function loadShaderScript(url){
+  return new Promise(resolve=>{
+    const previous=window.SHADERS,script=document.createElement('script');let failure='',finished=false;
+    // Syntax errors fire a window error, even when the script element fires load.
+    const onError=e=>{if(e.filename===script.src)failure=e.message||'Syntax error in shaders/index.js'};
+    window.addEventListener('error',onError);window.SHADERS=undefined;
+    const finish=()=>{
+      if(finished)return;finished=true;script.onload=script.onerror=null;
+      clearTimeout(timeout);window.removeEventListener('error',onError);script.remove();
+      let applied=false;
+      try{if(failure)throw new Error(failure);applied=applyFileShaders(window.SHADERS);liveError=''}
+      catch(e){window.SHADERS=previous;liveError=String(e.message)}
+      renderLive(applied);resolve(!liveError);
+    };
+    script.onload=finish;script.onerror=()=>{failure='Cannot load shaders/index.js';finish()};
+    const timeout=setTimeout(()=>{failure='Timed out loading shaders/index.js';finish()},5000);
+    script.src=url;document.head.appendChild(script);
+  });
+}
+async function pollShaders(){
+  if(!S.liveReload||document.hidden||liveBusy)return;
+  liveBusy=true;
+  try{await loadShaderScript('../shaders/index.js?t='+Date.now())}finally{liveBusy=false}
+}
+liveIndicator.onclick=()=>{S.liveReload=!S.liveReload;save();renderLive();if(S.liveReload)pollShaders()};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollShaders()});
+renderLive();
+if(new URLSearchParams(location.search).get('selftest')==='1')setTimeout(hotReloadSelftest,0);
+else setInterval(pollShaders,1000);
+
+// Opt-in host check: exercises the same payload/loader paths without writing files.
+async function hotReloadSelftest(){
+  let checks=0;
+  const check=(ok,message)=>{if(!ok)throw new Error(message);checks++};
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  try{
+    check(shaders.length>=3,'need three file shaders');
+    const original=clone(FILE_SHADERS),first=shaders.find(s=>s.fileName===original[0].name),second=shaders.find(s=>s.fileName===original[1].name);
+    const i=shaders.indexOf(first),j=shaders.indexOf(second),oldProgram=progs[i].p;
+    check(!!oldProgram&&!progs[i].err,'initial shader compiled');
+    S.shader=j;onShaderChange();
+    code.focus();code.value=second.src+'\n// editor work';code.dispatchEvent(new Event('input'));
+    const edited=code.value,secondProgram=progs[j].p,controls=JSON.stringify([S.knob,S.fader,S.good,S.view,S.nodes,S.cables]);
+    const incoming=clone(original);incoming[0].src+='\n// disk update';incoming[0].map={p_test:{src:'fader:0',inv:false}};incoming[1].src+='\n// conflicting disk update';
+    incoming.push({name:'SELFTEST NEW',src:'void main(){gl_FragColor=vec4(0.5);}',map:{}});
+    check(applyFileShaders(incoming),'changed payload applied');
+    check(first.src===incoming[0].src&&first.base===first.src,'unmodified source and baseline updated');
+    check(first.map.p_test.src==='fader:0'&&first.baseMap===JSON.stringify(first.map),'map updated');
+    check(progs[i].p!==oldProgram&&!!progs[i].p&&!progs[i].err,'unmodified shader recompiled');
+    check(second.src===edited&&second.diskChanged,'pending editor work preserved and warned');
+    check(progs[j].p!==secondProgram&&!progs[j].err,'pending editor work compiled');
+    check(code.value===edited&&edStatus.textContent.includes('file changed'),'typing preserved and warning displayed');
+    check(shaders[curShader()].name===second.name&&shaderSel.value===String(j),'selection keeps same name');
+    check(shaders.some(s=>s.fileName==='SELFTEST NEW')&&!!progs[shaders.findIndex(s=>s.fileName==='SELFTEST NEW')].p,'new shader appended and compiled');
+    check(JSON.stringify([S.knob,S.fader,S.good,S.view,S.nodes,S.cables])===controls,'controls and desk preserved');
+    check(!applyFileShaders(incoming),'unchanged payload skipped');
+    const snapshot=fileSignature(FILE_SHADERS),working=JSON.stringify(shaders),program=progs[i].p;
+    for(const bad of [null,{},[{name:'bad'}],[{name:'bad',src:'',map:[]}],[incoming[0],incoming[0]]]){
+      let rejected=false;try{applyFileShaders(bad)}catch(e){rejected=true}
+      check(rejected&&snapshot===fileSignature(FILE_SHADERS)&&working===JSON.stringify(shaders)&&program===progs[i].p,'malformed payload ignored');
+    }
+    code.blur();
+    const removed=shaders.find(s=>s.fileName===original[2].name),removedSrc=removed.src;
+    const next=incoming.filter(s=>s.name!==original[2].name);
+    check(applyFileShaders(next)&&removed.fileName===null&&removed.src===removedSrc,'removed file kept as editor-only');
+    const savedConfirm=window.confirm;window.confirm=()=>true;
+    try{document.getElementById('edRevert').click()}finally{window.confirm=savedConfirm}
+    check(second.src===incoming[1].src&&!second.diskChanged&&second.base===second.src&&!isModified(j),'revert loads latest disk and baseline');
+    S.shader=i;onShaderChange();
+    const invalidGLSL=clone(next);invalidGLSL[0].src='void main(){ BROKEN }';const lastGood=progs[i].p;
+    applyFileShaders(invalidGLSL);
+    check(progs[i].p===lastGood&&!!progs[i].err,'GLSL failure keeps last good program');
+    check(code.value===invalidGLSL[0].src&&edErr.textContent===progs[i].err,'selected shader editor and compile error refreshed');
+    applyFileShaders(next);check(progs[i].p!==lastGood&&!progs[i].err,'GLSL recovery recompiles');
+    S.shader=j;onShaderChange();
+    window.SHADERS=clone(next);const previous=window.SHADERS;
+    check(!await loadShaderScript('data:text/javascript,'+encodeURIComponent('window.SHADERS = [;')),'syntax error rejected');
+    check(window.SHADERS===previous&&fileSignature(FILE_SHADERS)===fileSignature(next)&&liveIndicator.textContent==='live ✕','syntax error preserves last good shaders and shows indicator');
+    check(!await loadShaderScript('data:text/javascript,'+encodeURIComponent('window.SHADERS = null;')),'malformed loaded payload rejected');
+    check(await loadShaderScript('data:text/javascript,'+encodeURIComponent('window.SHADERS = '+JSON.stringify(next)+';')),'loader recovers');
+    check(liveIndicator.textContent==='live ●','live indicator recovers');
+    S.liveReload=true;liveIndicator.click();check(S.liveReload===false&&liveIndicator.textContent==='live ○','pause toggle stored in state');
+    check(shaders[curShader()].name===second.name,'selection still preserved');
+    console.log('SELFTEST OK ('+checks+' checks)');
+  }catch(e){console.log('SELFTEST FAIL: '+e.message)}
+}
 
 function U(p,n){let m=locCache.get(p);if(!m){m={};locCache.set(p,m)}if(!(n in m))m[n]=gl.getUniformLocation(p,n);return m[n]}
 let last=now(),fps=0,fpsAcc=0,fpsN=0;
