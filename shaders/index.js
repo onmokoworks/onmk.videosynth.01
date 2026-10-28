@@ -30,6 +30,27 @@ void main(){
   gl_FragColor=vec4(c,1.0);
 }`},
 
+{ name: 'TUNNEL', map: {"p_speed":{"src":"fader:0","inv":false},"p_twist":{"src":"fader:1","inv":false},"p_rings":{"src":"knob:0","inv":false}}, src: `
+// first shader written for the Pi Zero (cheap: no loops). params: speed / twist / rings; GOOD: more stripes and colour, a glow that grows; key 0: flash
+uniform float p_speed; // @param 0.1 2.0 0.6 speed
+uniform float p_twist; // @param -2.0 2.0 0.4 twist
+uniform float p_rings; // @param 4.0 24.0 10.0 rings
+void main(){
+  vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+  float g=max(u_good,0.0),lg=log(1.0+g);
+  float r=length(uv)+1e-3,a=atan(uv.y,uv.x);
+  float z=0.35/r+u_time*p_speed;                    // depth into the tunnel
+  float stripes=floor(2.0+lg*3.0);                  // GOOD adds stripes, slower and slower
+  float v=sin(z*p_rings)*0.5+0.5;
+  float w=sin(a*stripes+z*p_twist*4.0)*0.5+0.5;
+  vec3 c=0.5+0.5*cos(6.2831*(v*0.6+w*0.4)+g*0.12+vec3(0.0,2.1,4.2));
+  c=mix(vec3(v*w),c,clamp(lg*0.8,0.15,1.0));        // starts monochrome, gets colour
+  c*=smoothstep(0.0,0.25,r);                        // dark centre
+  c+=exp(-r*8.0)*min(lg,2.0)*0.6;                    // glow that grows with GOOD
+  c+=u_key[0]*0.6+u_beat*0.0;
+  gl_FragColor=vec4(c,1.0);
+}`},
+
 { name: 'BARS', src: `
 // faders 0-2: bar count / roll speed / glitch; key 0: invert; key 1: tear; key 3: snow; GOOD: more bars, cleaner colours
 float h(float n){return fract(sin(n)*43758.5453);}

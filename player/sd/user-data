@@ -1,0 +1,37 @@
+#cloud-config
+# Vs-01 first boot (no network on a Pi Zero v1.3): login user, no desktop, the GLSL player as a service, then reboot.
+hostname: vs01
+users:
+- name: vs
+  groups: [sudo, video, render, input, dialout, gpio]
+  shell: /bin/bash
+  lock_passwd: false
+  plain_text_passwd: vs01
+  sudo: ALL=(ALL) NOPASSWD:ALL
+ssh_pwauth: true
+write_files:
+- path: /etc/systemd/system/vs01-player.service
+  permissions: '0644'
+  content: |
+    [Unit]
+    Description=Vs-01 GLSL player
+    After=systemd-user-sessions.service plymouth-quit-wait.service
+    [Service]
+    ExecStart=/usr/bin/python3 /boot/firmware/vs01/player.py /boot/firmware/vs01
+    Restart=always
+    RestartSec=2
+    [Install]
+    WantedBy=multi-user.target
+runcmd:
+- [sh, -c, "echo \"=== vs01 first boot $(date)\" >> /boot/firmware/vs01/setup_log.txt"]
+- [sh, -c, "systemctl set-default multi-user.target >> /boot/firmware/vs01/setup_log.txt 2>&1"]
+- [sh, -c, "systemctl disable lightdm.service userconfig.service >> /boot/firmware/vs01/setup_log.txt 2>&1 || true"]
+- [sh, -c, "systemctl disable serial-getty@ttyAMA0.service serial-getty@serial0.service >> /boot/firmware/vs01/setup_log.txt 2>&1 || true"]
+- [sh, -c, "rm -f /etc/xdg/autostart/piwiz.desktop"]
+- [sh, -c, "systemctl daemon-reload && systemctl enable vs01-player.service >> /boot/firmware/vs01/setup_log.txt 2>&1"]
+- [sh, -c, "ls -l /dev/dri >> /boot/firmware/vs01/setup_log.txt 2>&1; python3 --version >> /boot/firmware/vs01/setup_log.txt 2>&1; ldconfig -p | grep -E 'libEGL.so|libGLESv2.so|libgbm.so|libdrm.so' >> /boot/firmware/vs01/setup_log.txt 2>&1"]
+- [sh, -c, "echo '=== done' >> /boot/firmware/vs01/setup_log.txt"]
+power_state:
+  mode: reboot
+  message: Vs-01 setup done, rebooting into the player
+  condition: true

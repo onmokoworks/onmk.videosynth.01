@@ -27,10 +27,10 @@ button:hover,select:hover{background:#3d3d3d}
 #screenWrap{position:relative;margin:0 12px;aspect-ratio:4/3;background:#000;border:1px solid #111;border-radius:3px;overflow:hidden}
 #screen{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 #screenWrap:fullscreen{border:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto;display:flex;align-items:center;justify-content:center}
-#screenWrap:fullscreen #screen{width:auto;height:100%;aspect-ratio:4/3}
+#screenWrap:fullscreen #screen{width:auto;height:100%;aspect-ratio:auto}
 #err{position:absolute;left:0;right:0;bottom:0;max-height:55%;overflow:auto;margin:0;padding:8px 10px;background:rgba(0,0,0,.85);color:var(--err);white-space:pre-wrap;display:none}
 #side{overflow:hidden}
-#screenWrap{flex:none;width:min(calc(100% - 24px),calc(40vh * 4 / 3));align-self:center}
+#screenWrap{flex:none;width:min(calc(100% - 24px),calc(40vh * 16 / 9));align-self:center}
 #editor{flex:1;min-height:180px;display:flex;flex-direction:column;margin:10px 12px 0;border:1px solid #111;border-radius:3px;background:#1b1b1b;overflow:hidden}
 .ed-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;background:#2b2b2b;border-bottom:1px solid #111}
 .ed-bar input{font:inherit;color:var(--ink);background:#1b1b1b;border:1px solid #111;border-radius:3px;padding:2px 6px;width:9em}
@@ -92,7 +92,7 @@ details.help{margin:8px 12px 10px;color:var(--dim)}details.help summary{cursor:p
   <header><h1>ONMK VIDEOSYNTH 01</h1><button id="fsBtn" title="F">fullscreen</button></header>
   <div class="bar">
     <label>shader <select id="shaderSel"></select></label>
-    <label>render <select id="resSel"><option value="320">320×240</option><option value="640">640×480</option></select></label>
+    <label>render <select id="resSel"><option value="320">320×240 (4:3)</option><option value="640">640×480 (4:3)</option><option value="426">426×240 (16:9)</option><option value="854">854×480 (16:9)</option></select></label>
     <button id="resetBtn">reset controls</button>
   </div>
   <div id="screenWrap"><canvas id="screen"></canvas><pre id="err"></pre></div>
@@ -467,12 +467,12 @@ function build(src,old){
 const locCache=new Map();
 const progs=shaders.map(s=>build(s.src,null));
 let fb=[],W=0,H=0,cur=0,frame=0;
-function setRes(r){W=r;H=r*3/4;cv.width=W;cv.height=H;fb.forEach(f=>{gl.deleteTexture(f.t);gl.deleteFramebuffer(f.f)});
+function setRes(r){W=r;H=(r===426||r===854)?r*9/16|0:r*3/4;if(r===426)H=240;document.getElementById('screenWrap').style.aspectRatio=`${W}/${H}`;cv.width=W;cv.height=H;fb.forEach(f=>{gl.deleteTexture(f.t);gl.deleteFramebuffer(f.f)});
   fb=[0,1].map(()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,W,H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
     for(const[k,v]of[[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
     const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);return{t,f}});
   S.res=r;save()}
-const resSel=document.getElementById('resSel');resSel.value=String(S.res);resSel.onchange=()=>setRes(+resSel.value);setRes(S.res===640?640:320);
+const resSel=document.getElementById('resSel');resSel.value=String(S.res);resSel.onchange=()=>setRes(+resSel.value);setRes([320,640,426,854].includes(S.res)?S.res:320);
 const shaderSel=document.getElementById('shaderSel');
 function fillShaderSel(){shaderSel.textContent='';shaders.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${s.name}${isModified(i)?' *':''}`;shaderSel.appendChild(o)});shaderSel.value=curShader()}
 shaderSel.onchange=()=>selShader(+shaderSel.value-curShader());
