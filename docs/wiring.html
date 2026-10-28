@@ -52,12 +52,12 @@ ul{padding-left:20px}
 <div class="legend"><span><i style="background:#d6453d"></i>3.3V</span><span><i style="background:#e58a1f"></i>5V</span><span><i style="background:#777"></i>GND</span><span><i style="background:#3b82c4"></i>アナログ（ノブ・フェーダー）</span><span><i style="background:#2a8a78"></i>デジタル（キー・エンコーダー・切り替え）</span><span><i style="background:#8a5cc4"></i>シリアル（UART）・液晶</span></div>
 <p class="sub" style="margin-top:6px">図の中の <b>3V3 / 5V / GND</b> の小さな札は「同じ名前の札どうしは全部つながっている」という意味（線を全部描くと見づらいので省略）。</p>
 
-<div class="card warn"><b>守ること（これだけ）</b>
+<div class="card warn"><b>守ること・決まりごと</b>
 <ul>
-<li><b>電源を入れたまま DATA ケーブルを抜き挿ししない。</b>挿す瞬間に 5V が信号線に触れてマイコンを壊すことがある。展示中はケーブルをテープで固定する。</li>
+<li><b>電源を入れたままの抜き挿し OK</b> にするため、メイン側の 5V はジャックごとに <b>ポリスイッチ＋33Ω</b>、信号線は<b>両端に 2.2kΩ</b>。挿す瞬間に線どうしが触れても、流れる電流が小さく抑えられて壊れない。モノラル（2極）のケーブルを挿してしまっても同じく守られる（ただし動かない）。</li>
 <li>ノブ・フェーダーの端は <b>3.3V</b> につなぐ（5V はだめ）。</li>
 <li>横の箱は、<b>DATA の 5V → ショットキーダイオード → 電源入力</b>。帯のある側を基板側に。USB を挿したまま動かしても逆流しない。</li>
-<li>DATA の信号線（先端）には、<b>箱側とメイン側の両方に 1kΩ</b> を入れる（念のための保護）。</li>
+<li>DATA ケーブルは<b>ステレオ（3極）</b>。ユーロラックの黄色いケーブル（モノラル）では動かない。</li>
 <li>箱の柱に載せて端子を壁の穴に合わせるのは <b>Pi Zero</b>。メインの Pico は箱の中の空いた所に両面テープで固定。</li>
 <li>Pi Zero は電源を急に切られても壊れないよう<b>読み込み専用</b>にする（再生プログラムを入れるときに設定）。</li>
 </ul></div>
@@ -80,7 +80,7 @@ ul{padding-left:20px}
 <p>それぞれ3本足：<b>片端 → 3V3</b>、<b>反対の端 → GND</b>、<b>ワイパー → チャンネル</b>。どの足がワイパーかはテスターで確かめる（真ん中とは限らない）。回す向きが逆なら端の2本を入れ替える。</p></div>
 <div class="card"><h3>DATA 1 ジャック</h3>
 <table><tr><th>ジャック</th><th>Pico</th></tr>
-<tr><td>先端（Tip）</td><td><b>1kΩ</b> → <span class="pin">GP0</span>（UART0 TX）1番ピン</td></tr>
+<tr><td>先端（Tip）</td><td><b>2.2kΩ</b> → <span class="pin">GP0</span>（UART0 TX）1番ピン</td></tr>
 <tr><td>中間（Ring）</td><td><b>ダイオード</b>（帯が Pico 側）→ <span class="pin">VSYS</span> 39番ピン</td></tr>
 <tr><td>根元（Sleeve）</td><td><span class="pin">GND</span></td></tr></table></div>
 </div>
@@ -97,7 +97,7 @@ ul{padding-left:20px}
 <p>スイッチの<b>片足 → GP</b>、<b>もう片足 → GND</b>。抵抗はいらない（内蔵のプルアップを使う）。基板にその GP が出ていなければ、空いている別の GP に変えて教えてください（プログラム側で合わせます）。</p></div>
 <div class="card"><h3>DATA 3 ジャック</h3>
 <table><tr><th>ジャック</th><th>RP2350-PiZero</th></tr>
-<tr><td>先端</td><td><b>1kΩ</b> → <span class="pin">GP0</span>（UART0 TX）</td></tr>
+<tr><td>先端</td><td><b>2.2kΩ</b> → <span class="pin">GP0</span>（UART0 TX）</td></tr>
 <tr><td>中間</td><td><b>ダイオード</b>（帯が基板側）→ <span class="pin">5V</span> ピン</td></tr>
 <tr><td>根元</td><td><span class="pin">GND</span></td></tr></table></div>
 </div>
@@ -115,9 +115,9 @@ ul{padding-left:20px}
 <tr><td>RESET キー</td><td><span class="pin">GP18</span> 24番 ／ もう片足 GND</td></tr></table></div>
 <div class="card"><h3>Pico：DATA ジャック</h3>
 <table><tr><th>ジャック</th><th>つなぎ先</th></tr>
-<tr><td>DATA 1 先端（フェーダー箱から）</td><td><b>1kΩ</b> → <span class="pin">GP1</span>（UART0 RX）2番</td></tr>
-<tr><td>DATA 3 先端（キー箱から）</td><td><b>1kΩ</b> → <span class="pin">GP5</span>（UART1 RX）7番</td></tr>
-<tr><td>DATA 1・3 中間</td><td>5V → <b>ポリスイッチ MF-RX020</b> → 中間（ジャックごとに1本）</td></tr>
+<tr><td>DATA 1 先端（フェーダー箱から）</td><td><b>2.2kΩ</b> → <span class="pin">GP1</span>（UART0 RX）2番</td></tr>
+<tr><td>DATA 3 先端（キー箱から）</td><td><b>2.2kΩ</b> → <span class="pin">GP5</span>（UART1 RX）7番</td></tr>
+<tr><td>DATA 1・3 中間</td><td>5V → <b>ポリスイッチ MF-RX020</b> → <b>33Ω（1/2W）</b> → 中間（ジャックごとに1組）</td></tr>
 <tr><td>DATA 1・3 根元</td><td><span class="pin">GND</span></td></tr>
 <tr><td>DATA 7・8</td><td>何もつながない（予備）</td></tr></table></div>
 <div class="card"><h3>Pico → Pi Zero</h3>
@@ -157,7 +157,7 @@ ul{padding-left:20px}
 <div class="card"><ul>
 <li><b>74HC4067 モジュール</b> ×1（予備込みで2）— フェーダー箱</li>
 <li><b>USB-C 電源モジュール（5V を取り出すだけ）</b> ×1 — 電源入口</li>
-<li><b>1kΩ 抵抗</b> ×4、<b>ショットキーダイオード</b>（1N5817 など）×2、<b>100nF</b> ×1、<b>10〜47µF</b> ×2〜3</li>
+<li><b>2.2kΩ 抵抗</b> ×4、<b>33Ω 抵抗（1/2W）</b> ×2、<b>ショットキーダイオード</b>（1N5817 など）×2、<b>100nF</b> ×1、<b>10〜47µF</b> ×2〜3</li>
 <li>メス-メスのジャンパ線、細い配線用の線</li>
 <li>（手持ち）Pico ×2、RP2350-PiZero、Pi Zero v1.3（10/28 着）、ポリスイッチ MF-RX020、3.5mm ステレオジャック</li>
 </ul></div>
@@ -222,7 +222,7 @@ function Dia(id,W,H){
  ['ノブ 0','ノブ 1','ノブ 2','ノブ 3','フェーダー 0','フェーダー 1','フェーダー 2','フェーダー 3','フェーダー 4'].forEach((l,i)=>{
    const p=d.pot(640,46+i*30,l);d.wire(M['c'+i],p.w,C.ana,530+i*8)});
  const J=d.block(330,330,150,'DATA 1 ジャック',[['t','先端 Tip'],['r','中間 Ring'],['s','根元 Sleeve']]);
- d.inline(P.tx,J.t,'res','1kΩ',C.ser,290);d.inline(J.r,{x:P.vs.x+60,y:J.r.y},'diode','',C['5V'],J.r.x-40);d.note(J.r.x-190,J.r.y+34,'ダイオード（帯→Pico）');d.wire({x:P.vs.x+60,y:J.r.y},P.vs,C['5V'],P.vs.x+60);d.wire(P.g2,J.s,C.GND,220);
+ d.inline(P.tx,J.t,'res','2.2kΩ',C.ser,290);d.inline(J.r,{x:P.vs.x+60,y:J.r.y},'diode','',C['5V'],J.r.x-40);d.note(J.r.x-190,J.r.y+34,'ダイオード（帯→Pico）');d.wire({x:P.vs.x+60,y:J.r.y},P.vs,C['5V'],P.vs.x+60);d.wire(P.g2,J.s,C.GND,220);
  d.note(500,360,'→ メインの DATA 1 へ（ステレオケーブル）');d.note(500,380,'中間＝5V はメインから来る（ダイオードの帯は Pico 側）');
 }
 
@@ -235,7 +235,7 @@ function Dia(id,W,H){
  names.forEach((n,i)=>{const s=d.sw(330,P['k'+i].y,n);d.wire(P['k'+i],s.p,C.dig)});
  const J=d.block(730,40,150,'DATA 3 ジャック',[['t','先端 Tip'],['r','中間 Ring'],['s','根元 Sleeve']]);
  const Q=d.block(700,190,150,'RP2350（同じ基板）',[['tx','GP0 / TX'],['vs','5V'],['g','GND']]);
- d.wire(Q.tx,{x:640,y:J.t.y},C.ser,640);d.inline({x:640,y:J.t.y},J.t,'res','1kΩ',C.ser,685);
+ d.wire(Q.tx,{x:640,y:J.t.y},C.ser,640);d.inline({x:640,y:J.t.y},J.t,'res','2.2kΩ',C.ser,685);
  d.wire(J.r,{x:628,y:Q.vs.y},C['5V'],628);d.inline({x:628,y:Q.vs.y},Q.vs,'diode','',C['5V'],664);d.note(560,Q.vs.y+16,'ダイオード（帯→基板）');
  d.wire(J.s,Q.g,C.GND,616);
  d.note(640,300,'スイッチの反対側はすべて GND。抵抗は不要');d.note(640,320,'（内蔵のプルアップを使う）');
@@ -263,9 +263,9 @@ function Dia(id,W,H){
  d.note(560,L.rst.y+30,'液晶は Pi Zero が表示（シェーダー名・GOOD）');
  const J1=d.block(30,30,170,'DATA 1（フェーダー箱）',[],[['t','先端'],['r','中間'],['s','根元']],34);
  const J3=d.block(30,420,170,'DATA 3（キー箱）',[],[['t','先端'],['r','中間'],['s','根元']],34);
- d.inline(J1.t,R.rx1,'res','1kΩ',C.ser,290);d.inline(J3.t,R.rx2,'res','1kΩ',C.ser,290);
+ d.inline(J1.t,R.rx1,'res','2.2kΩ',C.ser,290);d.inline(J3.t,R.rx2,'res','2.2kΩ',C.ser,290);
  d.flag(J1.s,'GND');d.flag(J3.s,'GND');
- for(const J of[J1,J3]){d.inline({x:J.r.x+80,y:J.r.y},J.r,'fuse','MF-RX020',C['5V'],J.r.x+40);d.flag({x:J.r.x+80,y:J.r.y},'5V',10)}
+ for(const J of[J1,J3]){d.inline({x:J.r.x+80,y:J.r.y},J.r,'fuse','MF-RX020＋33Ω',C['5V'],J.r.x+40);d.flag({x:J.r.x+80,y:J.r.y},'5V',10)}
  const U=d.block(330,R.v.y+330,150,'USB-C 電源',[],[['v','5V'],['g','GND']],34);
  const T=d.block(560,R.v.y+330,140,'POWER トグル',[['i','入']],[['o','出']],34);
  d.wire(U.v,T.i,C['5V']);d.flag(T.o,'5V');d.flag(U.g,'GND',22);
