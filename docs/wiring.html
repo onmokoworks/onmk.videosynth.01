@@ -38,13 +38,13 @@ ul{padding-left:20px}
 <body>
 <main>
 <h1>Vs-01 配線図</h1>
-<p class="sub">2026-10-27 版（v2：Codex の監査を反映）。箱ごとにマイコンを入れて、DATA ケーブル（3.5mm ステレオ）で値をメインに集め、Pi Zero v1.3 が GLSL で映像を作る構成。</p>
+<p class="sub">2026-10-28 版（v3：パネル配置 v09 と、できあがったプログラム firmware/ に合わせた）。箱ごとにマイコンを入れて、DATA ケーブル（3.5mm ステレオ）で値をメインに集め、Pi Zero v1.3 が GLSL で映像を作る構成。</p>
 
 <div class="flow">[フェーダー箱]  Pico ＋ 74HC4067     ノブ4・フェーダー5
       │  DATA 1 ケーブル：先端 = 信号（箱 → メイン）／中間 = 5V（メイン → 箱）／根元 = GND
-[キー箱]        RP2350-PiZero        キー8・TAP4（全部ボタンなのでアナログ入力はいらない）
+[キー箱]        RP2350-PiZero        キー12（上の段の4つは TAP として使う。全部ボタンなのでアナログ入力はいらない）
       │  DATA 3 ケーブル：同じ
-[メイン]        Pico                 ノブ2・GOOD KNOB（エンコーダー）・RESET ＋ 横の箱の値をまとめる
+[メイン]        Pico                 ノブ1・GOOD KNOB（エンコーダー）・RESET・トグル SW2 ＋ 横の箱の値をまとめる
       │  UART（TX と GND の2本）
 [メイン]        Pi Zero v1.3         シェーダー → HDMI、小さい液晶（TFT）も Pi Zero が表示
 [メイン]        USB-C 電源入口 → POWER トグル → 5V（全部に配る）</div>
@@ -91,9 +91,9 @@ ul{padding-left:20px}
 <div class="grid">
 <div class="card"><h3>キー・TAP</h3>
 <table><tr><th>部品</th><th>RP2350-PiZero</th></tr>
-<tr><td>キー 0〜3（上の段、左から）</td><td><span class="pin">GP2 / GP3 / GP4 / GP5</span></td></tr>
-<tr><td>キー 4〜7（下の段、左から）</td><td><span class="pin">GP6 / GP7 / GP8 / GP9</span></td></tr>
-<tr><td>TAP 0〜3（左から）</td><td><span class="pin">GP10 / GP11 / GP12 / GP13</span></td></tr></table>
+<tr><td>上の段（左から）＝ TAP 0〜3</td><td><span class="pin">GP2 / GP3 / GP4 / GP5</span></td></tr>
+<tr><td>真ん中の段（左から）＝ キー 0〜3</td><td><span class="pin">GP6 / GP7 / GP8 / GP9</span></td></tr>
+<tr><td>下の段（左から）＝ キー 4〜7</td><td><span class="pin">GP10 / GP11 / GP12 / GP13</span></td></tr></table>
 <p>スイッチの<b>片足 → GP</b>、<b>もう片足 → GND</b>。抵抗はいらない（内蔵のプルアップを使う）。基板にその GP が出ていなければ、空いている別の GP に変えて教えてください（プログラム側で合わせます）。</p></div>
 <div class="card"><h3>DATA 3 ジャック</h3>
 <table><tr><th>ジャック</th><th>RP2350-PiZero</th></tr>
@@ -107,8 +107,8 @@ ul{padding-left:20px}
 <div class="grid">
 <div class="card"><h3>Pico：メインのつまみ</h3>
 <table><tr><th>部品</th><th>Pico</th></tr>
-<tr><td>ノブ 0（中央左）ワイパー</td><td><span class="pin">GP26</span>（ADC0）31番</td></tr>
-<tr><td>ノブ 1（右下）ワイパー</td><td><span class="pin">GP27</span>（ADC1）32番</td></tr>
+<tr><td>ノブ（1つだけ）ワイパー</td><td><span class="pin">GP26</span>（ADC0）31番</td></tr>
+<tr><td>トグル SW2（右下のもう1つのトグル）</td><td><span class="pin">GP19</span> 25番 ／ もう片足 GND</td></tr>
 <tr><td>ノブの両端</td><td><span class="pin">3V3(OUT)</span> 36番 と <span class="pin">GND</span></td></tr>
 <tr><td>GOOD KNOB（RE160F）A / B</td><td><span class="pin">GP16 / GP17</span> 21・22番</td></tr>
 <tr><td>GOOD KNOB の C（共通）</td><td><span class="pin">GND</span>（C の足は端子図とテスターで確認）</td></tr>
@@ -147,8 +147,8 @@ ul{padding-left:20px}
 <div class="card">
 <table><tr><th>どこ → どこ</th><th>形</th><th>頻度</th></tr>
 <tr><td>フェーダー箱 → メイン</td><td><code>F,k2,k3,k4,k5,f0,f1,f2,f3,f4\n</code>（0〜4095、ノブは全体の番号 2〜5）</td><td>50 回/秒</td></tr>
-<tr><td>キー箱 → メイン</td><td><code>K,kkkkkkkk,tttt\n</code>（押している所が 1）</td><td>変化したとき＋10 回/秒</td></tr>
-<tr><td>メイン Pico → Pi Zero</td><td><code>V,k0..k5,f0..f4,keys,taps,enc,reset\n</code>（ノブ・フェーダーは 0〜1、enc は回した段数の合計。<code>u_good = enc/24</code>）</td><td>60 回/秒</td></tr></table>
+<tr><td>キー箱 → メイン</td><td><code>K,&lt;12桁の0/1&gt;\n</code>（キー0〜11、押している所が 1。0〜3 が TAP）</td><td>変化したとき＋10 回/秒</td></tr>
+<tr><td>メイン Pico → Pi Zero</td><td><code>V,k0..k5,f0..f4,keys,taps,enc,reset,sw2\n</code>（17項目。ノブ・フェーダーは 0〜1、k1 は 0.5 固定、enc は回した段数の合計。<code>u_good = enc/24</code>）</td><td>60 回/秒</td></tr></table>
 <p>どれも 115200bps・8N1。Pi Zero v1.3 の GPIO15 は本物の UART（ttyAMA0）：<code>enable_uart=1</code>、シリアルコンソールは切る。</p>
 <p>読み取りのコツ（プログラム側）：74HC4067 は切り替えて 20µs 待ち、1回捨ててから数回平均。エンコーダーは A/B の状態変化で数える。</p>
 </div>
@@ -228,7 +228,7 @@ function Dia(id,W,H){
 
 // ---- 2. keys box ----
 {const d=Dia('diaK',900,470);
- const names=['キー 0（上段 左）','キー 1','キー 2','キー 3（上段 右）','キー 4（下段 左）','キー 5','キー 6','キー 7（下段 右）','TAP 0（左）','TAP 1','TAP 2','TAP 3（右）'];
+ const names=['TAP 0（上段 左）','TAP 1','TAP 2','TAP 3（上段 右）','キー 0（中段 左）','キー 1','キー 2','キー 3（中段 右）','キー 4（下段 左）','キー 5','キー 6','キー 7（下段 右）'];
  const pins=names.map((n,i)=>['k'+i,`GP${i+2}`]);
  const P=d.block(20,20,170,'RP2350-PiZero',[],[...pins,['g','GND']],30);
  d.flag(P.g,'GND');
@@ -246,10 +246,10 @@ function Dia(id,W,H){
 {const d=Dia('diaM',900,1050);
  // RP2350 in the middle; left = the two DATA jacks (inputs), right = panel parts and the Pi Zero (outputs)
  const R=d.block(330,20,190,'Pico（メイン）',[['rx1','GP1 / UART0 RX','2'],['rx2','GP5 / UART1 RX','7'],['v5','VSYS','39'],['g','GND','38']],
-   [['a0','GP26 / ADC0','31'],['a1','GP27 / ADC1','32'],['ea','GP16','21'],['eb','GP17','22'],['rs','GP18','24'],['tx','GP0 / UART0 TX','1'],['v','3V3(OUT)','36']],70);
+   [['a0','GP26 / ADC0','31'],['a1','GP19（SW2）','25'],['ea','GP16','21'],['eb','GP17','22'],['rs','GP18','24'],['tx','GP0 / UART0 TX','1'],['v','3V3(OUT)','36']],70);
  d.flag(R.v,'3V3');d.flag(R.v5,'5V',-26);d.flag(R.g,'GND',-26);
- const k0=d.pot(640,R.a0.y,'ノブ 0');d.wire(R.a0,k0.w,C.ana);
- const k1=d.pot(640,R.a1.y,'ノブ 1');d.wire(R.a1,k1.w,C.ana);
+ const k0=d.pot(640,R.a0.y,'ノブ');d.wire(R.a0,k0.w,C.ana);
+ const t2=d.sw(640,R.a1.y,'トグル SW2');d.wire(R.a1,t2.p,C.dig);
  const E=d.block(640,R.ea.y-52,170,'GOOD KNOB RE160F',[['a','A'],['b','B']],[['c','C 共通']],44);
  d.wire(R.ea,E.a,C.dig);d.wire(R.eb,E.b,C.dig);d.flag(E.c,'GND',18);
  const s=d.sw(640,R.rs.y,'RESET キー');d.wire(R.rs,s.p,C.dig);

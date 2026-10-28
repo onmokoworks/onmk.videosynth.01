@@ -7,6 +7,135 @@
 // log() keeps adding detail slower and slower, so turning "always makes it a bit better" and never breaks.
 window.SHADERS = [
 
+{ name: 'TRUCHET', src: `
+// メインの模様（つまみの割り当てはあとで）。背景 #fffaf0 に正方形のマスを敷き詰め、各マスに 1/4 円の弧を2本描く。
+// 弧1は右の辺と上の辺を、弧2は下の辺と左の辺をつなぐので、隣のマスの弧とつながって線になる。線は #7fffd4 と #00bfff。
+// ・各マスに「右上↔左下」の弧（#7fffd4 の層）と「左上↔右下」の弧（#00bfff の層）を両方重ねる。どちらが上かはマスごとに
+//   互い違い（市松）なので、2色の線が編み物のように上下に交差しながら斜めに流れる。
+// ・画面全体がずっと左上から右下へ流れる。
+// ・ときどきランダムに1マスがカードのようにこちらへ浮き上がり、縦軸か横軸のまわりでクルンと半回転して着地する。
+//   裏の面には、別の向き（90 度ずつ回した4通りのどれか）の同じ模様があるので、着地するとそのマスの向きが変わる。
+//   最初は全部同じ向きでそろっているが、時間とともに向きのばらけたトルシェタイルに近づいていく。
+// ・同時に回るマスは、画面全体で平均2〜3個（多くても6個くらい）になるように頻度を決めている。
+uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
+uniform float p_every;  // @param 5.0 120.0 30.0 1マスが回る平均の間隔（秒）。小さいほど、ばらけるのが早い
+uniform float p_flip;   // @param 0.6 3.0 1.4 1回の半回転にかける時間（秒）
+uniform float p_roll;   // @param 0.0 2.0 0.5 玉の速さ（1秒に進む弧の数）
+uniform float p_rule;   // @param 0.0 5.99 0.0 もとの並びの規則: 0 全部同じ 1 市松 2 行ごと 3 2x2市松 4 同心円 5 ゆっくり動く場
+
+float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
+float smoother(float f){return f*f*f*(f*(f*6.0-15.0)+10.0);}
+// もとの並びで左右反転するかどうか（規則ごと）
+float flipOf(vec2 cell,float cells){
+  float r=floor(p_rule);
+  if(r<0.5) return 0.0;
+  if(r<1.5) return mod(cell.x+cell.y,2.0);
+  if(r<2.5) return mod(cell.y,2.0);
+  if(r<3.5) return mod(floor(cell.x*0.5)+floor(cell.y*0.5),2.0);
+  if(r<4.5){vec2 c=(cell+0.5)-vec2(0.5*cells*u_resolution.x/u_resolution.y,0.5*cells);return mod(floor(length(c)),2.0);}
+  return step(0.0,sin(cell.x*0.45+u_time*0.3)+sin(cell.y*0.38-u_time*0.23)+sin((cell.x+cell.y)*0.21));
+}
+// マスの予定表：回る間隔とずれはマスごとにランダム。n 回目の半回転を終えると向きが orient(n) になる。
+// 戻り値 x = 今の半回転の進み 0..1（回っていなければ 1）、y = 回る前の向き、z = 回ったあとの向き、w = 回転軸（0 縦、1 横）
+vec4 schedule(vec2 cell){
+  float I=p_every*(0.6+0.8*hash(cell+1.3));
+  float first=2.0+hash(cell+7.1)*p_every*1.5;        // 最初の半回転の時刻（ここまでは全部そろった向き）
+  float tt=u_time-first;
+  if(tt<0.0) return vec4(1.0,0.0,0.0,0.0);
+  float n=floor(tt/I),f=(tt-n*I)/p_flip;
+  float newO=floor(hash(cell+vec2(n*1.7+0.3,n*3.1))*4.0);
+  float oldO=n<0.5?0.0:floor(hash(cell+vec2((n-1.0)*1.7+0.3,(n-1.0)*3.1))*4.0);
+  float axis=step(0.5,hash(cell+vec2(n*5.3,n*2.9)));
+  return vec4(min(f,1.0),f<1.0?oldO:newO,newO,axis);
+}
+// 中心 c・半径 0.5 の弧（角度 t0 から 90 度ぶん、両端が丸い）までの距離
+float arcSeg(vec2 q,vec2 c,float t0){
+  vec2 v=q-c;float t=t0+mod(atan(v.y,v.x)-t0,6.2831853);
+  if(t<=t0+1.5707963) return abs(length(v)-0.5);
+  vec2 e0=c+0.5*vec2(cos(t0),sin(t0)),e1=c+0.5*vec2(cos(t0+1.5707963),sin(t0+1.5707963));
+  return min(length(q-e0),length(q-e1));
+}
+// マスの中の位置 uv（0..1）を、反転と向き o（90 度単位）を戻した「もとのタイル」の座標にする
+vec2 tileQ(vec2 uv,float flip,float o){
+  if(flip>0.5) uv.x=1.0-uv.x;
+  float a=o*1.5707963;
+  return mat2(cos(a),-sin(a),sin(a),cos(a))*(uv-0.5)+0.5;
+}
+void main(){
+  float cells=5.0;                                   // 画面の縦に並ぶマスの数
+  float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
+  vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
+  float w=0.08,rb=0.055;                             // 線の半分の太さ、玉の半径（玉は線より細く）
+  float s=fract(u_time*p_roll);
+  vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941),ballC=vec3(0.973,0.973,1.0);
+  vec3 shadowC=vec3(0.78);                           // 影の色（薄いグレー）
+  float off=2.5*px*0.7071;                           // 影は画面の右下 45 度に 2.5 ピクセル
+  // ---- 地面の模様：止まっているマス（このマスと隣4マス） ----
+  vec2 base=floor(p);
+  float ld=9.0,lid=9.0,bd=9.0,sd=9.0,hole=0.0;
+  for(int n=0;n<5;n++){
+    vec2 o=n==1?vec2(1.0,0.0):n==2?vec2(-1.0,0.0):n==3?vec2(0.0,1.0):n==4?vec2(0.0,-1.0):vec2(0.0);
+    vec2 cell=base+o;
+    vec4 sc=schedule(cell);
+    if(sc.x<1.0){if(n==0) hole=1.0;continue;}       // 浮き上がっているマスは地面に描かない
+    float fl=flipOf(cell,cells),id=cell.x+cell.y;
+    vec2 q=tileQ(p-cell,fl,sc.y),qs=tileQ(p+vec2(-off,off)-cell,fl,sc.y);
+    vec2 qm=vec2(1.0-q.x,q.y);                      // 同じマスのもう一方の層（左右反転した弧）
+    float dA=min(arcSeg(q,vec2(1.0),3.1415927),arcSeg(q,vec2(0.0),0.0));
+    float dB=min(arcSeg(qm,vec2(1.0),3.1415927),arcSeg(qm,vec2(0.0),0.0));
+    ld=min(ld,dA);lid=min(lid,dB);                   // ld = 層A の距離、lid = 層B の距離
+    float t1=3.1415927+s*1.5707963,t2=1.5707963-s*1.5707963;     // 玉：弧1は上→右、弧2は左→下へ転がる
+    vec2 B1=vec2(1.0)+0.5*vec2(cos(t1),sin(t1)),B2=0.5*vec2(cos(t2),sin(t2));
+    bd=min(bd,min(length(q-B1),length(q-B2)));
+    sd=min(sd,min(length(qs-B1),length(qs-B2)));
+  }
+  vec3 c=bg;
+  if(hole>0.5) c=mix(bg,vec3(0.86,0.84,0.80),0.6);  // カードが抜けた跡は少し暗く
+  else{
+    bool topA=mod(base.x+base.y,2.0)<0.5;            // このマスで上になる層（市松で互い違い）
+    float dTop=topA?ld:lid,dBot=topA?lid:ld;
+    c=mix(c,topA?colB:colA,1.0-smoothstep(w-px,w+px,dBot));   // 下の層
+    c=mix(c,bg,1.0-smoothstep(w+1.5*px,w+2.5*px,dTop));       // 上の層のまわりに細いすき間（重なりが読めるように）
+    c=mix(c,topA?colA:colB,1.0-smoothstep(w-px,w+px,dTop));   // 上の層
+    if(sd<rb) c=shadowC;
+    if(bd<rb) c=ballC;
+  }
+  // ---- 浮き上がって回るカード（周り9マスから探して、一番手前のものを描く） ----
+  float bestS=0.0;
+  for(int n=0;n<9;n++){
+    vec2 cell=base+vec2(float(n-n/3*3)-1.0,float(n/3)-1.0);
+    vec4 sc=schedule(cell);
+    if(sc.x>=1.0) continue;
+    float e=smoother(sc.x),th=3.1415927*e;          // 半回転の角度
+    float S=1.0+0.35*sin(3.1415927*e);              // 浮き上がる分だけ大きく見せる
+    vec2 rel=p-(cell+0.5);
+    // カードの影（浮いた高さに合わせて右下へ）
+    vec2 rs=rel-vec2(1.0,-1.0)*0.18*sin(3.1415927*e);
+    float cs=cos(th);
+    vec2 ls=sc.w<0.5?vec2(rs.x/(S*max(abs(cs),0.02)),rs.y/S):vec2(rs.x/S,rs.y/(S*max(abs(cs),0.02)));
+    if(S>bestS&&max(abs(ls.x),abs(ls.y))<0.5) c=mix(c,shadowC,0.0)+(shadowC-c)*0.6;
+    // カードの面：縦軸なら横幅が、横軸なら縦幅が cos で縮む
+    vec2 l=sc.w<0.5?vec2(rel.x/(S*abs(cs)),rel.y/S):vec2(rel.x/S,rel.y/(S*abs(cs)));   // 裏面も鏡写しにせず、着地した向きのまま見せる
+    if(abs(cs)<0.02||max(abs(l.x),abs(l.y))>0.5||S<=bestS) continue;
+    bestS=S;
+    float face=cs>0.0?sc.y:sc.z;                    // 表は回る前の向き、裏は新しい向き
+    vec2 uv=l+0.5;
+    float fl=flipOf(cell,cells),id=cell.x+cell.y;
+    vec2 q=tileQ(uv,fl,face);
+    vec2 qm=vec2(1.0-q.x,q.y);
+    float dA=min(arcSeg(q,vec2(1.0),3.1415927),arcSeg(q,vec2(0.0),0.0));
+    float dB=min(arcSeg(qm,vec2(1.0),3.1415927),arcSeg(qm,vec2(0.0),0.0));
+    bool topA=mod(cell.x+cell.y,2.0)<0.5;
+    float dTop=topA?dA:dB,dBot=topA?dB:dA;
+    vec3 cc=mix(bg,topA?colB:colA,1.0-smoothstep(w-px,w+px,dBot));
+    cc=mix(cc,bg,1.0-smoothstep(w+1.5*px,w+2.5*px,dTop));
+    cc=mix(cc,topA?colA:colB,1.0-smoothstep(w-px,w+px,dTop));
+    cc*=0.85+0.15*abs(cs);                           // 傾いている間は少し陰る
+    c=cc;
+  }
+  gl_FragColor=vec4(c,1.0);
+}`},
+
 { name: 'GOOD', map: {"p_zoom":{"src":"fader:0","inv":false},"p_spin":{"src":"fader:1","inv":false},"p_glow":{"src":"fader:2","inv":false}}, src: `
 // GOOD KNOB: more mirrors, more colours, more shine, forever. params (map tab): zoom / spin / glow; key 0: flash; key 1: freeze rings
 uniform float p_zoom; // @param 1.0 4.0 2.5 zoom
