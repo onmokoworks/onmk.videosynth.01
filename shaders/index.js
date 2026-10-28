@@ -10,10 +10,8 @@ window.SHADERS = [
 { name: 'TRUCHET', src: `
 // メインの模様（つまみの割り当てはあとで）。背景 #fffaf0 に正方形のマスを敷き詰め、各マスに 1/4 円の弧を2本描く。
 // 弧1は右の辺と上の辺を、弧2は下の辺と左の辺をつなぐので、隣のマスの弧とつながって線になる。線は #7fffd4 と #00bfff。
-// ・各マスに、2本ずつ平行な線の束を2組入れる（手描きのスケッチ 2026-10-28 から）。
-//   曲がる束：右上の角を中心にした2重の 1/4 円（#00bfff）。上を通る。
-//   まっすぐな束：縦2本と横2本（#7fffd4）。曲がる束とぶつかる所で途切れて、下をくぐる。
-//   マスごとに向き（90 度ずつ4通り）が違うので、束が曲がったりくぐったりしながらつながっていく。
+// ・各マスに「右上↔左下」の弧（#7fffd4 の層）と「左上↔右下」の弧（#00bfff の層）を両方重ねる。どちらが上かはマスごとに
+//   互い違い（市松）なので、2色の線が編み物のように上下に交差しながら斜めに流れる。
 // ・画面全体がずっと左上から右下へ流れる。
 // ・ときどきランダムに1マスがカードのようにこちらへ浮き上がり、縦軸か横軸のまわりでクルンと半回転して着地する。
 //   裏の面には、別の向き（90 度ずつ回した4通りのどれか）の同じ模様があるので、着地するとそのマスの向きが変わる。
@@ -40,9 +38,6 @@ float flipOf(vec2 cell,float cells){
 // マスの予定表：回る間隔とずれはマスごとにランダム。n 回目の半回転を終えると向きが orient(n) になる。
 // 戻り値 x = 今の半回転の進み 0..1（回っていなければ 1）、y = 回る前の向き、z = 回ったあとの向き、w = 回転軸（0 縦、1 横）
 vec4 schedule(vec2 cell){
-  // いまは浮き上がって回る動きをお休み中：各マスはランダムな向きで止まったまま（p_every などは使っていない）
-  float o0=floor(hash(cell+9.9)*4.0);
-  if(true) return vec4(1.0,o0,o0,0.0);
   float I=p_every*(0.6+0.8*hash(cell+1.3));
   float first=2.0+hash(cell+7.1)*p_every*1.5;        // 最初の半回転の時刻（ここまでは全部そろった向き）
   float tt=u_time-first;
@@ -60,13 +55,6 @@ float arcSeg(vec2 q,vec2 c,float t0){
   vec2 e0=c+0.5*vec2(cos(t0),sin(t0)),e1=c+0.5*vec2(cos(t0+1.5707963),sin(t0+1.5707963));
   return min(length(q-e0),length(q-e1));
 }
-// タイルの中の線：dOver = 曲がる束（上）までの距離、dUnder = まっすぐな束（下）までの距離
-void tileLines(vec2 q,out float dOver,out float dUnder){
-  float r=length(q-vec2(1.0));
-  dOver=min(abs(r-0.3333),abs(r-0.6667));
-  dUnder=min(min(abs(q.x-0.3333),abs(q.x-0.6667)),min(abs(q.y-0.3333),abs(q.y-0.6667)));
-  if(q.x<0.0||q.y<0.0||q.x>1.0||q.y>1.0){dOver=9.0;dUnder=9.0;}   // タイルの外には描かない
-}
 // マスの中の位置 uv（0..1）を、反転と向き o（90 度単位）を戻した「もとのタイル」の座標にする
 vec2 tileQ(vec2 uv,float flip,float o){
   if(flip>0.5) uv.x=1.0-uv.x;
@@ -77,7 +65,7 @@ void main(){
   float cells=5.0;                                   // 画面の縦に並ぶマスの数
   float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
   vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
-  float w=0.045,rb=0.032;                            // 線の半分の太さ、玉の半径（玉は線より細く）
+  float w=0.08,rb=0.055;                             // 線の半分の太さ、玉の半径（玉は線より細く）
   float s=fract(u_time*p_roll);
   vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941),ballC=vec3(0.973,0.973,1.0);
   vec3 shadowC=vec3(0.78);                           // 影の色（薄いグレー）
@@ -92,19 +80,23 @@ void main(){
     if(sc.x<1.0){if(n==0) hole=1.0;continue;}       // 浮き上がっているマスは地面に描かない
     float fl=flipOf(cell,cells),id=cell.x+cell.y;
     vec2 q=tileQ(p-cell,fl,sc.y),qs=tileQ(p+vec2(-off,off)-cell,fl,sc.y);
-    float dO,dU;tileLines(q,dO,dU);
-    ld=min(ld,dO);lid=min(lid,dU);                   // ld = 曲がる束（上）、lid = まっすぐな束（下）
-    float t1=3.1415927+s*1.5707963;                  // 玉：曲がる束の2本の上を、上の辺から右の辺へ転がる
-    vec2 B1=vec2(1.0)+0.3333*vec2(cos(t1),sin(t1)),B2=vec2(1.0)+0.6667*vec2(cos(t1),sin(t1));
+    vec2 qm=vec2(1.0-q.x,q.y);                      // 同じマスのもう一方の層（左右反転した弧）
+    float dA=min(arcSeg(q,vec2(1.0),3.1415927),arcSeg(q,vec2(0.0),0.0));
+    float dB=min(arcSeg(qm,vec2(1.0),3.1415927),arcSeg(qm,vec2(0.0),0.0));
+    ld=min(ld,dA);lid=min(lid,dB);                   // ld = 層A の距離、lid = 層B の距離
+    float t1=3.1415927+s*1.5707963,t2=1.5707963-s*1.5707963;     // 玉：弧1は上→右、弧2は左→下へ転がる
+    vec2 B1=vec2(1.0)+0.5*vec2(cos(t1),sin(t1)),B2=0.5*vec2(cos(t2),sin(t2));
     bd=min(bd,min(length(q-B1),length(q-B2)));
     sd=min(sd,min(length(qs-B1),length(qs-B2)));
   }
   vec3 c=bg;
   if(hole>0.5) c=mix(bg,vec3(0.86,0.84,0.80),0.6);  // カードが抜けた跡は少し暗く
   else{
-    c=mix(c,colA,1.0-smoothstep(w-px,w+px,lid));              // まっすぐな束（下）
-    c=mix(c,bg,1.0-smoothstep(w+2.0*px,w+3.0*px,ld));         // 曲がる束のまわりにすき間（下の線が途切れて、くぐって見える）
-    c=mix(c,colB,1.0-smoothstep(w-px,w+px,ld));               // 曲がる束（上）
+    bool topA=mod(base.x+base.y,2.0)<0.5;            // このマスで上になる層（市松で互い違い）
+    float dTop=topA?ld:lid,dBot=topA?lid:ld;
+    c=mix(c,topA?colB:colA,1.0-smoothstep(w-px,w+px,dBot));   // 下の層
+    c=mix(c,bg,1.0-smoothstep(w+1.5*px,w+2.5*px,dTop));       // 上の層のまわりに細いすき間（重なりが読めるように）
+    c=mix(c,topA?colA:colB,1.0-smoothstep(w-px,w+px,dTop));   // 上の層
     if(sd<rb) c=shadowC;
     if(bd<rb) c=ballC;
   }
@@ -130,10 +122,14 @@ void main(){
     vec2 uv=l+0.5;
     float fl=flipOf(cell,cells),id=cell.x+cell.y;
     vec2 q=tileQ(uv,fl,face);
-    float dO,dU;tileLines(q,dO,dU);
-    vec3 cc=mix(bg,colA,1.0-smoothstep(w-px,w+px,dU));
-    cc=mix(cc,bg,1.0-smoothstep(w+2.0*px,w+3.0*px,dO));
-    cc=mix(cc,colB,1.0-smoothstep(w-px,w+px,dO));
+    vec2 qm=vec2(1.0-q.x,q.y);
+    float dA=min(arcSeg(q,vec2(1.0),3.1415927),arcSeg(q,vec2(0.0),0.0));
+    float dB=min(arcSeg(qm,vec2(1.0),3.1415927),arcSeg(qm,vec2(0.0),0.0));
+    bool topA=mod(cell.x+cell.y,2.0)<0.5;
+    float dTop=topA?dA:dB,dBot=topA?dB:dA;
+    vec3 cc=mix(bg,topA?colB:colA,1.0-smoothstep(w-px,w+px,dBot));
+    cc=mix(cc,bg,1.0-smoothstep(w+1.5*px,w+2.5*px,dTop));
+    cc=mix(cc,topA?colA:colB,1.0-smoothstep(w-px,w+px,dTop));
     cc*=0.85+0.15*abs(cs);                           // 傾いている間は少し陰る
     c=cc;
   }
