@@ -12,8 +12,8 @@ window.SHADERS = [
 // 「右上↔左下」の弧（#7fffd4 の層）と「左上↔右下」の弧（#00bfff の層）。どちらが上かはマスごとに互い違い（市松）で、
 // 2色の線が編み物のように上下に交差する。白っぽい玉 #f8f8ff が線の上を転がり、右下に薄い影が落ちる。
 // ・画面全体がずっと左上から右下へ流れる。
-// ・回る単位の正方形は、模様のマスから半マスずらしてある（マスの角＝円の中心に正方形の中心がくる）。
-//   ときどきランダムに1つの正方形が浮き上がり、画面の面内で（z 軸まわりに）90 度回って着地する。
+// ・回る単位の正方形は、模様のマスから斜めに 1/4 マスずらしてある（正方形の中心はマスの中心と角の間）。
+//   ときどきランダムに1つの正方形の中身が、その場で（浮き上がらずに）画面の面内で 90 度回る。正方形の枠は動かない。
 //   回った分はそのまま残るので、時間とともに正方形ごとに向きがばらけていく。
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_every;  // @param 5.0 120.0 30.0 1つの正方形が回る平均の間隔（秒）。小さいほど、ばらけるのが早い
@@ -60,31 +60,11 @@ void main(){
   float cells=5.0;                                   // 画面の縦に並ぶマスの数
   float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
   vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
-  vec3 shadowC=vec3(0.78);
-  // 回る正方形は半マスずらした格子：正方形 sq は [sq+0.5, sq+1.5]、中心は sq+1（マスの角）
-  vec2 sq0=floor(p-0.5);
-  // ---- 地面：自分の正方形（浮いていなければ、着地済みの向きで描く） ----
-  vec2 sc=schedule(sq0),ctr=sq0+1.0;
-  vec3 c;
-  if(sc.x<1.0) c=vec3(0.86,0.84,0.80);               // 浮き上がった正方形の抜けた跡
-  else c=ground(ctr+rot(-sc.y*1.5707963)*(p-ctr),px);
-  // ---- 浮き上がって回る正方形（周り9つから探して、一番手前を描く） ----
-  float best=0.0;
-  for(int n=0;n<9;n++){
-    vec2 sq=sq0+vec2(float(n-n/3*3)-1.0,float(n/3)-1.0);
-    vec2 k=schedule(sq);
-    if(k.x>=1.0) continue;
-    float e=smoother(k.x),lift=sin(3.1415927*e);
-    float S=1.0+0.3*lift;                            // 浮いた分だけ大きく見せる
-    float ang=(k.y+e)*1.5707963;                     // 着地済みの向きから、さらに 90 度へ
-    vec2 cen=sq+1.0,rel=p-cen;
-    vec2 ls=rot(-ang)*(rel-vec2(1.0,-1.0)*0.15*lift)/S;   // 影（浮いた高さに合わせて右下へ）
-    if(max(abs(ls.x),abs(ls.y))<0.5&&S>best) c=mix(c,shadowC,0.7);
-    vec2 l=rot(-ang)*rel/S;
-    if(max(abs(l.x),abs(l.y))>0.5||S<=best) continue;
-    best=S;
-    c=ground(cen+l,px);                              // 正方形の中身＝模様を回したもの
-  }
+  // 回る正方形は 1/4 マスずらした格子：正方形 sq は [sq+0.25, sq+1.25]、中心は sq+0.75
+  vec2 sq=floor(p-0.25),ctr=sq+0.75;
+  vec2 k=schedule(sq);
+  float ang=(k.x<1.0?k.y+smoother(k.x):k.y)*1.5707963;      // 着地済みの向き（回っている間はそこから 90 度へ）
+  vec3 c=ground(ctr+rot(-ang)*(p-ctr),px);                  // 正方形の枠の中で、模様だけを回す
   gl_FragColor=vec4(c,1.0);
 }`},
 
