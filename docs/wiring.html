@@ -95,7 +95,7 @@ ul{padding-left:20px}
 <tr><td>上の段（左から）＝ TAP 0〜3</td><td><span class="pin">GP2 / GP3 / GP4 / GP14</span></td></tr>
 <tr><td>真ん中の段（左から）＝ キー 0〜3</td><td><span class="pin">GP5 / GP17 / GP18 / GP27</span></td></tr>
 <tr><td>下の段（左から）＝ キー 4〜7</td><td><span class="pin">GP22 / GP23 / GP24 / GP11</span></td></tr></table>
-<p>どれも RP2350-PiZero のヘッダの上から10段目までにあるピン（線が短くまとまる）。<b>全部のキーの上側の足を GND の数珠つなぎ</b>、下側の足をそれぞれの GP へ。</p>
+<p>どれも RP2350-PiZero のヘッダの上から10段目までにあるピン（線が短くまとまる）。<b>全部のキーの上側の足を GND の数珠つなぎ</b>、下側の足をそれぞれの GP へ。<b>GND は各段（上・中・下）からボードの GND へ1本ずつ</b>（段の間の渡り線だけだと切れやすい。10/28 に上・中段が無反応→各段直結で解決、12キー全部 OK）。</p>
 <p>スイッチの<b>片足 → GP</b>、<b>もう片足 → GND</b>。抵抗はいらない（内蔵のプルアップを使う）。基板にその GP が出ていなければ、空いている別の GP に変えて教えてください（プログラム側で合わせます）。</p></div>
 <div class="card"><h3>DATA 3 ジャック</h3>
 <table><tr><th>ジャック</th><th>RP2350-PiZero</th></tr>
