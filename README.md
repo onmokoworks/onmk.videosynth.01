@@ -1,20 +1,34 @@
-# onmk.videosynth.01 (Vs-01)
+# onmk.videosynth.01（Vs-01）
 
-A hardware video synthesizer for GEISAI 2026 (11/1–3). A Raspberry Pi Zero renders GLSL fragment shaders to HDMI;
-three panels of knobs, faders and keys change the picture. The GOOD KNOB (an endless encoder) makes the picture
-better with every detent, forever.
+GEISAI 2026（11月1日〜3日）に出す、手で触れるビデオシンセです。
 
-| folder | what |
+Raspberry Pi Zero が GLSL のシェーダーで映像を作り、HDMI で画面に出します。
+3つの箱（パネル）にあるノブ・フェーダー・キーで、映像が変わります。
+
+いちばん大事なつまみは **GOOD KNOB** です。どこまでも回せるつまみで、回すほど映像が少しずつ良くなっていきます。それが終わりなく続きます。
+
+## フォルダの中身
+
+| フォルダ | 入っているもの |
 |---|---|
-| `emulator/` | browser emulator + shader editor + control mapping. Open `emulator/index.html` in Chrome (no server). |
-| `shaders/` | the shaders (`index.js`, GLSL ES 1.00) and their control maps |
-| `docs/` | `wiring.html` (wiring diagrams), `panel_controls.json` (panel parts and positions) |
-| `hardware/layout/` | panel layout v08d (from the layout tool, the source of truth) |
-| `hardware/panel_topplates/` | top plates 3 mm: DXF / SVG / STL / STEP |
-| `hardware/laser_acrylic/` | laser-cut sheets (white matte top+bottom, opal LED ring, test coupon) |
-| `hardware/enclosure_3dp/` | 3D-printed tray boxes (STL) and the CadQuery script |
-| `hardware/knobs_keycaps/` | CadQuery scripts for the C14 knobs and the keycaps (STLs are large; regenerate) |
-| `AGENTS.md` | instructions for coding agents (shader contract, mapping rules, tasks) |
+| `emulator/` | ブラウザで動く試作環境。3つの箱を画面上で触れて、シェーダーを書き換え、つまみに値を割り当てられる。`emulator/index.html` を Chrome で開くだけで使える（サーバーはいらない）。 |
+| `shaders/` | シェーダー本体（`index.js`）と、どのつまみで何が動くかの割り当て |
+| `docs/` | 配線図（`wiring.html`）と、パネルの部品の位置（`panel_controls.json`） |
+| `hardware/layout/` | パネルの配置 v08d（配置ツールの正本から書き出したもの） |
+| `hardware/panel_topplates/` | 天板 3mm の図面（DXF・SVG・STL・STEP） |
+| `hardware/laser_acrylic/` | アクリルのレーザーカット用の図面（白マットの天板と底板、乳半の LED リング、試し板） |
+| `hardware/enclosure_3dp/` | 3D プリントの箱の STL と、それを作るスクリプト |
+| `hardware/knobs_keycaps/` | ノブとキーキャップを作るスクリプト（STL は大きいので入れていない。スクリプトから作り直す） |
+| `AGENTS.md` | Codex など、コードを書く AI 向けの指示書（シェーダーの決まり、割り当ての決まり、やること） |
 
-The scripts in `hardware/` are copies for reference; they were run from the working folders, so their input
-paths point there.
+## エミュレーターの使い方
+
+1. `emulator/index.html` を Chrome で開く。
+2. 左に映像とシェーダーのエディタ、右に3つの箱が並んだ台が出る。
+3. 台の上のノブやフェーダーをドラッグ、キーをクリックすると映像が変わる。キーボードでも操作できる（左下の「keys & mouse」に一覧）。
+4. エディタでシェーダーを書き換えると、すぐ映像に反映される。⌘S で `shaders/index.js` に保存できる。
+5. エディタの **map** タブで、シェーダーの値をつまみに割り当てられる。
+
+## 注意
+
+`hardware/` の中のスクリプトは参考用のコピーです。作業用のフォルダで動かしていたので、読み込むファイルの場所はそちらを指しています。
