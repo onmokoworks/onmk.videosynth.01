@@ -1,0 +1,582 @@
+[
+  {
+    "board": "case-1",
+    "name": "150 × 150 / CL1362",
+    "file": "01_topplate_main_120x140_t3mm",
+    "width": 120,
+    "height": 140,
+    "thickness": 3.0,
+    "holes": [
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          60.0,
+          48.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          105.0,
+          48.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          75.0,
+          48.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          90.0,
+          48.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          102.0,
+          118.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          135.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          115.0,
+          135.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          115.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "nkk_toggle",
+        "size": "φ6.5",
+        "center_layout": [
+          15.0,
+          45.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "knob_large",
+        "size": "φ9.4",
+        "center_layout": [
+          35.0951,
+          105.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "tft_225_st7789",
+        "size": "63.1×18.5",
+        "center_layout": [
+          70.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          42.5,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          80.0,
+          97.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      }
+    ]
+  },
+  {
+    "board": "case-25210c6f-2971-4d83-9c04-aa099c8e3c31",
+    "name": "新しい筐体",
+    "file": "02_topplate_faders_110x105_t3mm",
+    "width": 110,
+    "height": 105,
+    "thickness": 3.0,
+    "holes": [
+      {
+        "part": "slide_sl4515n",
+        "size": "50×3",
+        "center_layout": [
+          35.0,
+          65.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          35.0,
+          37.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          35.0,
+          93.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          15.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          105.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          105.0,
+          100.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          100.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          35.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          55.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "50×3",
+        "center_layout": [
+          55.0,
+          65.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          55.0,
+          37.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          55.0,
+          93.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          75.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "50×3",
+        "center_layout": [
+          75.0,
+          65.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          75.0,
+          37.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          75.0,
+          93.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "knob_small",
+        "size": "φ7.3",
+        "center_layout": [
+          95.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "50×3",
+        "center_layout": [
+          95.0,
+          65.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          95.0,
+          37.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          95.0,
+          93.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "50×3",
+        "center_layout": [
+          15.0,
+          65.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          15.0,
+          37.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      },
+      {
+        "part": "slide_sl4515n",
+        "size": "φ2.2",
+        "center_layout": [
+          15.0,
+          93.0
+        ],
+        "rotation": 90,
+        "overridden": true
+      }
+    ]
+  },
+  {
+    "board": "case-40b01e9d-add1-4e43-8212-0c2064c0a67d",
+    "name": "筐体 110 × 30",
+    "file": "03_topplate_keys_115x80_t3mm",
+    "width": 115,
+    "height": 80,
+    "thickness": 3.0,
+    "holes": [
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          95.0,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          75.0,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          55.0,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          35.0,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "jack_cl1362",
+        "size": "φ6.3",
+        "center_layout": [
+          15.0,
+          60.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          110.0,
+          75.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          75.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          110.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "m3_screw",
+        "size": "φ3.4",
+        "center_layout": [
+          5.0,
+          5.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          35.0,
+          40.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          55.0,
+          40.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          75.0,
+          40.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "key_18mm",
+        "size": "13.95×13.95",
+        "center_layout": [
+          95.0,
+          40.0
+        ],
+        "rotation": 0,
+        "overridden": true
+      },
+      {
+        "part": "gray_round",
+        "size": "φ12.3",
+        "center_layout": [
+          35.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "gray_round",
+        "size": "φ12.3",
+        "center_layout": [
+          55.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "gray_round",
+        "size": "φ12.3",
+        "center_layout": [
+          95.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      },
+      {
+        "part": "gray_round",
+        "size": "φ12.3",
+        "center_layout": [
+          75.0,
+          20.0
+        ],
+        "rotation": 0,
+        "overridden": false
+      }
+    ]
+  }
+]

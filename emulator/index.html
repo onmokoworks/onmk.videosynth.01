@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>onmk videosynth emulator</title>
+<style>
+:root{
+  --bg:#1d1d1d; --ink:#e6e6e6; --dim:#8a8a8a; --line:#2f2f2f; --side:#262626;
+  --desk:#303030; --grid:#383838; --grid2:#2b2b2b;
+  --node-head:#3c4a52; --node-head-sel:#4f6672; --node-ink:#dfe7ea;
+  --panel:#f2f0eb; --panel-edge:#d9d6cf; --panel-ink:#8d8a83;
+  --cap:#a9cfe0; --cap-dark:#7fb0c6; --cap-hi:#d5ecf5;
+  --metal:#c9cbcd; --metal-dark:#7d8084; --hole:#2a2b2d;
+  --gray:#9a9ea3; --accent:#7fe0c8; --err:#ff6b6b; --cable:#f2d22e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden}
+#app{display:grid;grid-template-columns:minmax(320px,42%) 1fr;height:100%}
+#side{background:var(--side);border-right:1px solid #111;display:flex;flex-direction:column;min-width:0;overflow:auto}
+#side header{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #111}
+#side h1{font-size:12px;font-weight:600;margin:0;letter-spacing:.08em;flex:1}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
+.bar label{color:var(--dim)}
+select,button{font:inherit;color:var(--ink);background:#333;border:1px solid #1a1a1a;border-radius:4px;padding:3px 8px;cursor:pointer}
+button:hover,select:hover{background:#3d3d3d}
+#screenWrap{position:relative;margin:0 12px;aspect-ratio:4/3;background:#000;border:1px solid #111;border-radius:3px;overflow:hidden}
+#screen{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#screenWrap:fullscreen{border:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto;display:flex;align-items:center;justify-content:center}
+#screenWrap:fullscreen #screen{width:auto;height:100%;aspect-ratio:4/3}
+#err{position:absolute;left:0;right:0;bottom:0;max-height:55%;overflow:auto;margin:0;padding:8px 10px;background:rgba(0,0,0,.85);color:var(--err);white-space:pre-wrap;display:none}
+#side{overflow:hidden}
+#screenWrap{flex:none;width:min(calc(100% - 24px),calc(40vh * 4 / 3));align-self:center}
+#editor{flex:1;min-height:180px;display:flex;flex-direction:column;margin:10px 12px 0;border:1px solid #111;border-radius:3px;background:#1b1b1b;overflow:hidden}
+.ed-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;background:#2b2b2b;border-bottom:1px solid #111}
+.ed-bar input{font:inherit;color:var(--ink);background:#1b1b1b;border:1px solid #111;border-radius:3px;padding:2px 6px;width:9em}
+.ed-bar .st{margin-left:auto;color:var(--dim);white-space:nowrap}
+.ed-bar .st.ok{color:var(--accent)}.ed-bar .st.bad{color:var(--err)}.ed-bar .st.mod{color:#f2d22e}
+.ed-body{flex:1;display:flex;min-height:0;position:relative}
+#gutter{margin:0;padding:8px 6px 8px 8px;min-width:3.2em;text-align:right;color:#5b5b5b;background:#1f1f1f;border-right:1px solid #141414;overflow:hidden;user-select:none;white-space:pre;line-height:1.5}
+#gutter .e{color:#fff;background:var(--err);border-radius:2px}
+.code-wrap{flex:1;position:relative;min-width:0;background:#191a1c}
+#code,#hl{position:absolute;inset:0;margin:0;padding:10px 12px;border:0;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;tab-size:2;letter-spacing:0}
+#hl{overflow:hidden;pointer-events:none;color:#cfd3d6}
+#code{outline:0;resize:none;background:transparent;color:transparent;caret-color:#7fe0c8;overflow:auto}
+#code::selection{background:rgba(127,224,200,.22);color:transparent}
+#hl .c{color:#66737a;font-style:italic}#hl .at{color:#f2d22e;font-style:normal}
+#hl .n{color:#f3b28c}#hl .k{color:#c3a6f0}#hl .t{color:#8fd3c2}#hl .f{color:#e9cf8e}
+#hl .u{color:#9ccbe6}#hl .p{color:#7fe0c8;font-weight:700}#hl .pp{color:#f28b82}
+#hl .el{background:rgba(255,107,107,.13);box-shadow:inset 2px 0 #ff6b6b}
+#gutter{line-height:1.6!important;padding-top:10px!important;font-size:12.5px;background:#1d1e21!important;color:#4c5257!important}
+#edErr{max-height:7.5em;overflow:auto;margin:0;padding:0 10px;color:var(--err);white-space:pre-wrap;background:#1b1b1b}
+#edErr:not(:empty){padding:6px 10px;border-top:1px solid #111}
+.tabs{display:flex;gap:2px;margin-right:4px}.tabs button{border-radius:3px 3px 0 0;background:#222}.tabs button.on{background:#3a4a52;color:#fff}
+#mapPanel{flex:1;overflow:auto;padding:8px 10px;display:none}
+#mapPanel.on{display:block}
+#mapPanel table{width:100%;border-collapse:collapse}
+#mapPanel td{padding:4px 6px;border-bottom:1px solid #262626;vertical-align:middle}
+#mapPanel .pn{color:#e6e6e6;white-space:nowrap}#mapPanel .pl{color:var(--dim)}
+#mapPanel .bar{position:relative;height:6px;min-width:70px;background:#2c2c2c;border-radius:3px;overflow:hidden;padding:0}
+#mapPanel .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+#mapPanel select{max-width:11em}
+#mapPanel .learn.on{background:#f2d22e;color:#111;animation:blink .8s infinite}
+@keyframes blink{50%{opacity:.55}}
+#mapPanel .hint{color:#777;margin:8px 0 0;line-height:1.6}
+#mapPanel code{color:#cfe7f2}
+.badge rect{fill:#1d2a31;opacity:.92}.badge text{font:600 2.3px ui-monospace,Menlo,monospace;fill:#7fe0c8;text-anchor:middle}
+.learning .ctl,.learning .jack{outline:none;filter:drop-shadow(0 0 1.2px #f2d22e)}
+details.help{margin:8px 12px 10px;color:var(--dim)}details.help summary{cursor:pointer;color:#777}
+#help{color:var(--dim);padding:6px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;align-content:start}
+#help b{color:var(--ink);font-weight:600;white-space:nowrap}
+#help .h{grid-column:1/-1;color:#6f6f6f;margin-top:8px;letter-spacing:.08em}
+#desk{position:relative;overflow:hidden;background-color:var(--desk);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px);cursor:default;touch-action:none}
+#desk svg{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}
+#desk.panning{cursor:grabbing}
+#deskbar{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+#hint{position:absolute;left:10px;bottom:8px;color:#777;pointer-events:none}
+.node-head{cursor:grab}
+.node-title{font:600 4.2px ui-monospace,Menlo,monospace;fill:var(--node-ink);letter-spacing:.4px;pointer-events:none}
+.node-sub{font:3px ui-monospace,Menlo,monospace;fill:#9fb3bb;pointer-events:none;text-anchor:end}
+.ctl{cursor:pointer}.drag{cursor:ns-resize}.hdrag{cursor:ew-resize}.jack{cursor:crosshair}
+.lbl{font:2.1px ui-monospace,Menlo,monospace;fill:var(--panel-ink);letter-spacing:.15px;text-anchor:middle;pointer-events:none}
+.kbd{font:1.8px ui-monospace,Menlo,monospace;fill:#3d6577;opacity:.45;text-anchor:middle;pointer-events:none;font-weight:700}
+.cable{fill:none;stroke:var(--cable);stroke-width:1.5;stroke-linecap:round;opacity:.92;cursor:pointer}
+.cable:hover{stroke-width:2.1}
+@media (max-width:760px){html,body{overflow:auto}#app{grid-template-columns:1fr;grid-template-rows:auto 70vh;height:auto}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="side">
+  <header><h1>ONMK VIDEOSYNTH 01</h1><button id="fsBtn" title="F">fullscreen</button></header>
+  <div class="bar">
+    <label>shader <select id="shaderSel"></select></label>
+    <label>render <select id="resSel"><option value="320">320×240</option><option value="640">640×480</option></select></label>
+    <button id="resetBtn">reset controls</button>
+  </div>
+  <div id="screenWrap"><canvas id="screen"></canvas><pre id="err"></pre></div>
+  <div id="editor">
+    <div class="ed-bar">
+      <div class="tabs"><button id="tabCode" class="on">code</button><button id="tabMap">map</button></div>
+      <input id="edName" title="shader name" spellcheck="false">
+      <button id="edNew" title="new shader from a template">new</button>
+      <button id="edDup" title="duplicate this shader">dup</button>
+      <button id="edRevert" title="back to the version in shaders/index.js">revert</button>
+      <button id="edDel" title="delete (only shaders made here)">delete</button>
+      <button id="edSave" title="⌘S — write shaders/index.js (or download it)">save index.js</button>
+      <span class="st" id="edStatus"></span>
+    </div>
+    <div class="ed-body" id="codeBody"><pre id="gutter"></pre><div class="code-wrap"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea></div></div>
+    <div id="mapPanel"></div>
+    <pre id="edErr"></pre>
+  </div>
+  <details class="help"><summary>keys &amp; mouse</summary><div id="help"></div></details>
+</aside>
+<section id="desk">
+  <svg id="deskSvg">
+    <defs>
+      <radialGradient id="gCap" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#cfe7f2"/><stop offset=".6" stop-color="#a9cfe0"/><stop offset="1" stop-color="#8dbcd1"/></radialGradient>
+      <radialGradient id="gScoop" cx="50%" cy="70%" r="70%"><stop offset="0" stop-color="#8fbdd1"/><stop offset="1" stop-color="#b9dbe9"/></radialGradient>
+      <radialGradient id="gMetal" cx="38%" cy="32%" r="80%"><stop offset="0" stop-color="#f4f5f6"/><stop offset=".55" stop-color="#c3c6c9"/><stop offset="1" stop-color="#8b8f93"/></radialGradient>
+      <radialGradient id="gScrew" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="#4a4b4e"/><stop offset="1" stop-color="#151517"/></radialGradient>
+      <linearGradient id="gKey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9dbe9"/><stop offset="1" stop-color="#9cc6d9"/></linearGradient>
+    </defs>
+    <g id="view"><g id="body"></g><g id="nodes"></g><g id="cables"></g></g>
+  </svg>
+  <div id="deskbar"><button id="homeBtn" title="Home">frame all</button><button id="layoutBtn">reset layout</button></div>
+  <div id="hint">drag empty desk / middle button: pan · wheel / pinch: zoom · drag node header: move · drag jack → jack: patch / re-patch</div>
+</section>
+</div>
+<script src="../docs/panel_controls.js"></script>
+<script src="../shaders/index.js"></script>
+<script>
+'use strict';
+// ---------- state ----------
+const KEYMAP_KEYS=['q','w','e','r','a','s','d','f'];   // keys box, panel order (row by row)
+const KEYMAP_TAP=['1','2','3','4'];
+// GOOD KNOB (the encoder): every detent makes the picture a little better, forever. u_good = turns, unbounded.
+const S={knob:new Array(6).fill(.5),fader:new Array(5).fill(.5),good:0,shader:0,power:true,res:320,nodes:{},view:null,cables:[]};
+const keyState=[...Array(8)].map(()=>({held:false,rel:-1e9}));
+const noiseState={held:false,rel:-1e9};
+let bootAt=-1e9,taps=[],beatPeriod=.5,beatOrigin=0,lastTouched='—',simTime=0;
+try{Object.assign(S,JSON.parse(localStorage.getItem('onmk-vs-emu')||'{}'))}catch(e){}
+let saveT=0;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('onmk-vs-emu',JSON.stringify(S))}catch(e){}},200)}
+const now=()=>performance.now()/1000;
+const env=k=>k.held?1:Math.max(0,1-(now()-k.rel)/.2);
+// Working shader list = shaders/index.js plus edits made in the editor (kept in localStorage until saved).
+// Each entry: {name, src, fileName} — fileName links it to its shaders/index.js original (null = made here).
+const FILE_SHADERS=window.SHADERS||[];
+const fileSrc=n=>FILE_SHADERS.find(f=>f.name===n)?.src;
+const shaders=(()=>{
+  const lib=Array.isArray(S.lib)?S.lib.filter(e=>e&&typeof e.src==='string'):[];
+  const J=JSON.stringify,fresh=f=>({name:f.name,src:f.src,map:JSON.parse(J(f.map||{})),fileName:f.name,base:f.src,baseMap:J(f.map||{})});
+  const out=[];
+  for(const e of lib){
+    const f=e.fileName&&FILE_SHADERS.find(f=>f.name===e.fileName);
+    // an entry nobody edited since it was loaded follows the file (so a newer shaders/index.js shows up)
+    if(f&&(e.base===undefined||(e.src===e.base&&J(e.map||{})===e.baseMap&&e.name===e.fileName)))out.push(fresh(f));
+    else out.push({name:e.name,src:e.src,map:e.map||{},fileName:f?e.fileName:null,base:e.base,baseMap:e.baseMap});
+  }
+  for(const f of FILE_SHADERS)if(!out.some(e=>e.fileName===f.name))out.push(fresh(f));
+  return out;
+})();
+const saveLib=()=>{S.lib=shaders.map(({name,src,map,fileName,base,baseMap})=>({name,src,map,fileName,base,baseMap}));save()};
+const curShader=()=>((S.shader%shaders.length)+shaders.length)%shaders.length;
+function selShader(d){S.shader=curShader()+d;lastTouched=`SHADER ${curShader()+1}`;onShaderChange();save()}
+
+// ---------- desk (pan / zoom, Blender node editor style) ----------
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e};
+const desk=document.getElementById('desk'),deskSvg=document.getElementById('deskSvg'),viewG=document.getElementById('view');
+const nodesG=document.getElementById('nodes'),cablesG=document.getElementById('cables');
+let V=S.view||{x:40,y:40,k:2.6};   // screen px = world mm * k + offset
+function applyView(){viewG.setAttribute('transform',`translate(${V.x} ${V.y}) scale(${V.k})`);const L=50*V.k,Sm=10*V.k;desk.style.backgroundSize=`${L}px ${L}px,${L}px ${L}px,${Sm}px ${Sm}px,${Sm}px ${Sm}px`;desk.style.backgroundPosition=`${V.x}px ${V.y}px`;S.view=V;scheduleWires();save()}
+function toWorld(cx,cy){const r=deskSvg.getBoundingClientRect();return{x:(cx-r.left-V.x)/V.k,y:(cy-r.top-V.y)/V.k}}
+function zoomAt(cx,cy,f){const r=deskSvg.getBoundingClientRect(),px=cx-r.left,py=cy-r.top;const k=Math.min(12,Math.max(.6,V.k*f));V.x=px-(px-V.x)*k/V.k;V.y=py-(py-V.y)*k/V.k;V.k=k;applyView()}
+const isDesk=t=>t===deskSvg||t===desk;
+desk.addEventListener('pointerdown',e=>{
+  if(!(e.button===1||(e.button===0&&isDesk(e.target))))return;
+  e.preventDefault();desk.setPointerCapture(e.pointerId);desk.classList.add('panning');let lx=e.clientX,ly=e.clientY;
+  const mv=ev=>{V.x+=ev.clientX-lx;V.y+=ev.clientY-ly;lx=ev.clientX;ly=ev.clientY;applyView()};
+  const up=()=>{desk.classList.remove('panning');desk.removeEventListener('pointermove',mv);desk.removeEventListener('pointerup',up)};
+  desk.addEventListener('pointermove',mv);desk.addEventListener('pointerup',up);
+});
+// pinch (ctrl+wheel) and mouse wheel zoom; two-finger trackpad scroll pans
+desk.addEventListener('wheel',e=>{if(e.defaultPrevented)return;e.preventDefault();
+  const trackpad=!e.ctrlKey&&(e.deltaX!==0||!Number.isInteger(e.deltaY)||Math.abs(e.deltaY)<40);
+  if(trackpad){V.x-=e.deltaX;V.y-=e.deltaY;applyView()}
+  else zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*(e.ctrlKey?.01:.0015)))},{passive:false});
+
+// ---------- controls ----------
+const ui={knobs:[],faders:[],keys:[],taps:[],noise:null,toggle:null,enc:null,tft:null};
+const jacks={};   // id -> {node, x, y}
+function drag(target,onMove,onDown,onUp){
+  target.addEventListener('pointerdown',ev=>{
+    if(ev.button!==0)return;ev.preventDefault();ev.stopPropagation();target.setPointerCapture(ev.pointerId);
+    let lx=ev.clientX,ly=ev.clientY;onDown&&onDown(ev);
+    const mv=e=>{onMove(e.clientX-lx,e.clientY-ly,e);lx=e.clientX;ly=e.clientY};
+    const up=e=>{target.removeEventListener('pointermove',mv);target.removeEventListener('pointerup',up);target.removeEventListener('pointercancel',up);onUp&&onUp(e)};
+    target.addEventListener('pointermove',mv);target.addEventListener('pointerup',up);target.addEventListener('pointercancel',up);
+  });
+}
+const wheel=(g,fn)=>g.addEventListener('wheel',e=>{e.preventDefault();fn(e)},{passive:false});
+function press(g,fn){g.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();g.setPointerCapture(e.pointerId);fn(true)});g.addEventListener('pointerup',()=>fn(false));g.addEventListener('pointercancel',()=>fn(false))}
+function knobGfx(g,r){
+  el('circle',{r:r+.5,fill:'rgba(0,0,0,.22)',cx:.5,cy:.9},g);
+  const rot=el('g',{},g);
+  el('circle',{r,fill:'url(#gCap)',stroke:'#7fadc2','stroke-width':.25},rot);
+  const cid='c'+Math.random().toString(36).slice(2);el('clipPath',{id:cid},rot).appendChild(el('circle',{r:r-.35}));
+  el('ellipse',{cx:0,cy:-r*.42,rx:r*.78,ry:r*.66,fill:'url(#gScoop)','clip-path':`url(#${cid})`},rot);   // the scoop cut toward -Y
+  el('circle',{r:r-.25,fill:'none',stroke:'#e3f2f8','stroke-width':.3,opacity:.7},rot);
+  return rot;
+}
+function setArc(p,r,v){const a0=-135*Math.PI/180,a1=a0+v*270*Math.PI/180;const P=a=>[Math.sin(a)*r,-Math.cos(a)*r];const[x0,y0]=P(a0),[x1,y1]=P(a1);p.setAttribute('d',v<.002?'':`M${x0} ${y0}A${r} ${r} 0 ${v*270>180?1:0} 1 ${x1} ${y1}`)}
+
+// ---------- mapping: shader params <- panel controls ----------
+// A shader declares params as   uniform float p_name; // @param min max default  label
+// and its map says which control drives each one: {p_name:{src:'fader:0', inv:false}}.
+// Every source gives 0..1 (GOOD is folded with 1-exp(-0.35*g) so it rises forever but stays in range).
+const SOURCES=[...[0,1,2,3,4,5].map(i=>[`knob:${i}`,`knob ${i}${i<2?' (main)':' (faders box)'}`]),...[0,1,2,3,4].map(i=>[`fader:${i}`,`fader ${i}`]),
+  ...[0,1,2,3,4,5,6,7].map(i=>[`key:${i}`,`key ${i} (${KEYMAP_KEYS[i].toUpperCase()})`]),['good','GOOD KNOB'],['beat','beat (TAP)'],['reset','RESET key']];
+const srcName=id=>(SOURCES.find(s=>s[0]===id)||[,id])[1];
+function srcValue(id){const[k,n]=id.split(':');switch(k){
+  case'knob':return S.knob[+n]??0;case'fader':return S.fader[+n]??0;case'key':return keyState[+n]?env(keyState[+n]):0;
+  case'good':return 1-Math.exp(-Math.max(S.good,0)*.35);case'beat':return((now()-beatOrigin)/beatPeriod)%1;case'reset':return env(noiseState)}return 0}
+const ctlEls={};let learnParam=null;
+function register(id,g,badgeY){ctlEls[id]={g,badgeY}}
+function touched(id){if(!learnParam)return;const s=shaders[curShader()];s.map[learnParam]={src:id,inv:s.map[learnParam]?.inv||false};
+  lastTouched=`MAP ${learnParam} ← ${srcName(id)}`;learnParam=null;desk.classList.remove('learning');saveLib();fillShaderSel();renderMap();renderBadges()}
+function parseParams(src){const out=[];const re=/uniform\s+float\s+(p_\w+)\s*;[ \t]*(?:\/\/[ \t]*@param\b([^\n]*))?/g;let m;
+  while((m=re.exec(src))){const t=(m[2]||'').trim().split(/\s+/);const num=t.slice(0,3).map(Number);const ok=num.filter(Number.isFinite).length;
+    const min=ok>=2?num[0]:0,max=ok>=2?num[1]:1,def=ok>=3?num[2]:min;out.push({name:m[1],min,max,def,label:t.slice(Math.min(ok,3)).join(' ')})}return out}
+function paramValue(p,map){const m=map[p.name];if(!m)return p.def;const v=srcValue(m.src);return p.min+(p.max-p.min)*(m.inv?1-v:v)}
+function renderBadges(){
+  document.querySelectorAll('.badge').forEach(b=>b.remove());const s=shaders[curShader()];if(!s)return;
+  const by={};for(const p of parseParams(s.src)){const m=s.map[p.name];if(m&&ctlEls[m.src])(by[m.src]=by[m.src]||[]).push(p.name.replace(/^p_/,''))}
+  for(const id in by){const{g,badgeY}=ctlEls[id];const t=by[id].join(' · '),w=t.length*1.45+2.4;
+    const bg=el('g',{class:'badge',transform:`translate(0 ${badgeY})`,'pointer-events':'none'},g);el('rect',{x:-w/2,y:-2.2,width:w,height:3.2,rx:1.2},bg);el('text',{y:.3},bg).textContent=t}
+}
+const hexPath=r=>{let d='';for(let i=0;i<6;i++){const a=Math.PI/6+i*Math.PI/3;d+=(i?'L':'M')+(Math.cos(a)*r).toFixed(2)+' '+(Math.sin(a)*r).toFixed(2)}return d+'Z'};
+function holeBox(b,x,y){for(const h of b.holes||[]){const n=h.match(/-?[\d.]+/g).map(Number);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let i=0;i<n.length;i+=2){x0=Math.min(x0,n[i]);x1=Math.max(x1,n[i]);y0=Math.min(y0,n[i+1]);y1=Math.max(y1,n[i+1])}
+  if(x>x0&&x<x1&&y>y0&&y<y1&&x1-x0>20)return{x0,y0,x1,y1}}return null}
+// The plate files describe round holes as ~100-point polygons; draw those as two arcs instead (far less to raster).
+function simplifyHole(h){
+  const n=h.match(/-?[\d.]+/g).map(Number),P=[];for(let i=0;i<n.length;i+=2)P.push([n[i],n[i+1]]);
+  if(P.length<12)return h;
+  const cx=P.reduce((a,p)=>a+p[0],0)/P.length,cy=P.reduce((a,p)=>a+p[1],0)/P.length,ds=P.map(p=>Math.hypot(p[0]-cx,p[1]-cy));
+  const r=ds.reduce((a,b)=>a+b)/ds.length;if(Math.max(...ds.map(d=>Math.abs(d-r)))>.05)return h;   // not a circle (slot etc.)
+  return`M${(cx-r).toFixed(2)} ${cy.toFixed(2)}a${r.toFixed(3)} ${r.toFixed(3)} 0 1 0 ${(2*r).toFixed(3)} 0a${r.toFixed(3)} ${r.toFixed(3)} 0 1 0 ${(-2*r).toFixed(3)} 0Z`;
+}
+const HEAD=8;   // node header height (mm)
+const DEFAULT_POS={main:{x:0,y:0},faders:{x:135,y:0},keys:{x:135,y:125}};
+const nodeEls={};
+function buildBoard(b,bi){
+  const pos=S.nodes[b.name]||(S.nodes[b.name]={...(DEFAULT_POS[b.name]||{x:bi*130,y:0})});
+  const node=el('g',{},nodesG);nodeEls[b.name]={g:node,b};
+  const place=()=>node.setAttribute('transform',`translate(${pos.x} ${pos.y})`);place();
+  // header, like a Blender node title bar
+  el('rect',{x:-1.2,y:-HEAD,width:b.width+2.4,height:b.height+HEAD+1.2,rx:2.4,fill:'#1a1a1a',opacity:.55,transform:'translate(1.2 2)'},node);
+  const head=el('g',{class:'node-head'},node);
+  el('rect',{x:-1.2,y:-HEAD,width:b.width+2.4,height:HEAD+3,rx:2.4,fill:'var(--node-head)'},head);
+  el('text',{class:'node-title',x:2,y:-HEAD/2+1.5},head).textContent=b.name.toUpperCase();
+  el('text',{class:'node-sub',x:b.width-1,y:-HEAD/2+1.2},head).textContent=`${b.width}×${b.height} mm`;
+  drag(head,(dx,dy)=>{pos.x+=dx/V.k;pos.y+=dy/V.k;place();scheduleWires();save()},()=>{nodesG.appendChild(node)});
+  const panel=el('g',{},node);
+  // plate, then the printed decor, then the holes painted dark on top (cheaper than clipping the decor to a holed path)
+  el('rect',{x:0,y:0,width:b.width,height:b.height,rx:2.5,fill:'var(--panel)',stroke:'var(--panel-edge)','stroke-width':.3},panel);
+  const dg=el('g',{'pointer-events':'none'},panel);
+  for(const o of b.decor||[]){
+    if(o.t==='ellipse')el('ellipse',{cx:o.cx,cy:o.cy,rx:o.rx,ry:o.ry,fill:o.fill},dg);
+    else if(o.t==='path')el('path',{d:o.d,fill:'none',stroke:o.stroke,'stroke-width':o.sw,'stroke-linecap':'round','stroke-linejoin':'round'},dg);
+    else if(o.t==='glyph')el('path',{d:o.d,transform:o.tf,fill:o.fill},dg);
+  }
+  el('path',{d:(b.holes||[]).map(simplifyHole).join(''),fill:'#141416','pointer-events':'none'},panel);
+  for(const[x,y]of[[5,5],[b.width-5,5],[5,b.height-5],[b.width-5,b.height-5]]){const sg=el('g',{transform:`translate(${x} ${y})`},panel);
+    el('circle',{r:2.75,fill:'url(#gScrew)',stroke:'#0c0c0d','stroke-width':.2},sg);
+    el('path',{d:'M-1.3 0H1.3M0 -1.3V1.3',stroke:'#050505','stroke-width':.55,'stroke-linecap':'round'},sg)}
+  const order={knob:[],fader:[],key:[]};let jackN=0;
+  for(const c of b.controls){
+    const g=el('g',{transform:`translate(${c.x} ${c.y})`},panel);
+    const label=t=>{if(t)el('title',{},g).textContent=t};
+    switch(c.part){
+      case 'knob_small':{
+        const idx=(b.name==='main'?0:2)+order.knob.length;order.knob.push(c);g.classList.add('ctl','drag');
+        const rot=knobGfx(g,7);label(c.label,11.6);
+        const set=v=>{S.knob[idx]=Math.min(1,Math.max(0,v));rot.setAttribute('transform',`rotate(${-135+S.knob[idx]*270})`);lastTouched=`KNOB ${idx} ${S.knob[idx].toFixed(2)}`;save()};
+        drag(g,(dx,dy)=>{set(S.knob[idx]-dy*.005+dx*.002);touched(`knob:${idx}`)},()=>touched(`knob:${idx}`));wheel(g,e=>{set(S.knob[idx]-Math.sign(e.deltaY)*.02);touched(`knob:${idx}`)});
+        g.addEventListener('dblclick',()=>set(.5));ui.knobs[idx]={set};register(`knob:${idx}`,g,-10);break}
+      case 'knob_large':{
+        g.classList.add('ctl','hdrag');
+        const rot=knobGfx(g,8.5);label('GOOD KNOB (endless)');
+        const show=()=>rot.setAttribute('transform',`rotate(${S.good*360})`);
+        let acc=0;const step=d=>{S.good+=d/24;show();lastTouched=`GOOD ${S.good>=0?'+':''}${S.good.toFixed(2)}`;touched('good');save()};
+        drag(g,(dx,dy)=>{acc+=dx-dy;while(acc>14){acc-=14;step(1)}while(acc<-14){acc+=14;step(-1)}},()=>touched('good'));wheel(g,e=>step(e.deltaY>0?-1:1));
+        ui.enc={step,show};show();register('good',g,-12);break}
+      case 'slide_sl4515n':{
+        const idx=order.fader.length;order.fader.push(c);const L=45;g.classList.add('ctl','drag');
+                el('rect',{x:-5,y:-L/2-3,width:10,height:L+6,fill:'transparent'},g);   // wider hit area
+        const cap=el('g',{},g);el('rect',{x:-4,y:-5.6,width:8,height:12,rx:1.4,fill:'rgba(0,0,0,.25)'},cap);el('rect',{x:-4.5,y:-6,width:9,height:12,rx:1.4,fill:'url(#gKey)',stroke:'#7fadc2','stroke-width':.25},cap);el('rect',{x:-4.5,y:-.4,width:9,height:.8,fill:'#7fadc2',opacity:.6},cap);
+        label(c.label,L/2+7.5);
+        const set=v=>{S.fader[idx]=Math.min(1,Math.max(0,v));cap.setAttribute('transform',`translate(0 ${L/2-S.fader[idx]*L})`);lastTouched=`FADER ${idx} ${S.fader[idx].toFixed(2)}`;save()};
+        const fromPtr=e=>{const w=toWorld(e.clientX,e.clientY);set((pos.y+c.y+L/2-w.y)/L)};
+        drag(g,(dx,dy,e)=>fromPtr(e),e=>{fromPtr(e);touched(`fader:${idx}`)});wheel(g,e=>{set(S.fader[idx]-Math.sign(e.deltaY)*.02);touched(`fader:${idx}`)});
+        ui.faders[idx]={set};register(`fader:${idx}`,g,-L/2-7);break}
+      case 'key_18mm':{
+        const isNoise=b.name==='main';const idx=isNoise?-1:order.key.length;if(!isNoise)order.key.push(c);
+        g.classList.add('ctl');el('rect',{x:-8.5,y:-7.2,width:17,height:16,rx:2.2,fill:'rgba(0,0,0,.12)'},g);
+        const body=el('g',{},g);
+        el('rect',{x:-8.5,y:-8,width:17,height:16,rx:2.2,fill:'url(#gKey)',stroke:'#7fadc2','stroke-width':.25},body);
+        el('circle',{r:6.6,fill:'url(#gScoop)',opacity:.75},body);for(let rr=1.2;rr<6.6;rr+=1.1)el('circle',{r:rr,fill:'none',stroke:'#86b5ca','stroke-width':.12,opacity:.55},body);
+        el('text',{class:'kbd',x:6.2,y:6.6},body).textContent=isNoise?'␣':KEYMAP_KEYS[idx].toUpperCase();label(isNoise?'RESET (GOOD → 0)':c.label);
+        const st=isNoise?noiseState:keyState[idx];   // main key = RESET (printed on the plate): sets GOOD back to 0
+        const set=on=>{if(st.held===on)return;st.held=on;if(!on)st.rel=now();body.setAttribute('transform',on?'translate(0 .5) scale(.96)':'');
+          if(isNoise&&on){S.good=0;ui.enc&&ui.enc.show();save()}lastTouched=(isNoise?'RESET':`KEY ${idx}`)+(on?' ●':' ○');if(on)touched(isNoise?'reset':`key:${idx}`)};
+        press(g,set);if(isNoise)ui.noise={press:set};else ui.keys[idx]={press:set};register(isNoise?'reset':`key:${idx}`,g,-10);break}
+      case 'gray_round':{
+        const idx=ui.taps.length;g.classList.add('ctl');const body=el('g',{},g);
+        el('circle',{r:6,fill:'#8e9296',stroke:'#6f7377','stroke-width':.25},body);el('circle',{r:5,fill:'url(#gMetal)',opacity:.55},body);
+        el('text',{class:'kbd',y:.6,style:'fill:#2a2d30'},body).textContent=KEYMAP_TAP[idx];label(c.label,9.6);
+        const set=on=>{body.setAttribute('transform',on?'scale(.94)':'');if(on){tap();touched('beat')}};press(g,set);ui.taps.push({press:set});if(idx===0)register('beat',g,-8.5);break}
+      case 'nkk_toggle':{
+        g.classList.add('ctl');el('path',{d:hexPath(4.8),fill:'url(#gMetal)',stroke:'#7d8084','stroke-width':.2},g);el('circle',{r:3,fill:'#cfd2d5',stroke:'#8b8f93','stroke-width':.2},g);
+        const lever=el('g',{},g);el('path',{d:'M-1.1 0L-1.3 -8.5A1.3 1.3 0 0 0 1.3 -8.5L1.1 0Z',fill:'url(#gMetal)',stroke:'#7d8084','stroke-width':.2},lever);
+        label((c.label||'')+' ON / OFF');
+        const set=v=>{if(v&&!S.power){simTime=0;bootAt=now();clearFrames()}S.power=v;lever.setAttribute('transform',v?'':'scale(1 -1)');lastTouched=`POWER ${v?'ON':'OFF'}`;save()};
+        g.addEventListener('pointerdown',e=>e.stopPropagation());g.addEventListener('click',()=>set(!S.power));ui.toggle={set};break}
+      case 'jack_cl1362':{
+        const id=`${b.name}.${jackN++}`;jacks[id]={node:b.name,x:c.x,y:c.y,label:c.label};g.classList.add('jack');
+        el('path',{d:hexPath(4.6),fill:'url(#gMetal)',stroke:'#7d8084','stroke-width':.2},g);el('circle',{r:3,fill:'#d9dbdd',stroke:'#9a9da0','stroke-width':.2},g);el('circle',{r:1.8,fill:'#0d0d0e'},g);label(c.label,7.2);
+        g.dataset.jack=id;patchFrom(g,id);break}
+      case 'tft_225_st7789':{
+        const hb=holeBox(b,c.x,c.y)||{x0:c.x-30,y0:c.y-8,x1:c.x+30,y1:c.y+8};
+        // an offscreen canvas copied into an SVG <image> only when its text changes (a foreignObject re-rasters the whole desk)
+        const img=el('image',{x:hb.x0-c.x+.6,y:hb.y0-c.y+.6,width:hb.x1-hb.x0-1.2,height:hb.y1-hb.y0-1.2,preserveAspectRatio:'none',style:'image-rendering:pixelated'},g);
+        const cv=document.createElement('canvas');cv.width=284;cv.height=76;ui.tft=cv.getContext('2d');ui.tftImg=img;break}
+    }
+  }
+}
+
+// ---------- patch cables ----------
+// One plug per jack, like the real thing. Drag from a free jack: new cable. Drag from a patched jack: pull that
+// plug out and carry it (the other end stays put); drop it on a jack to re-patch, on the desk to unplug.
+// Assumption (not confirmed): the DATA jacks link the side boxes to MAIN, so FADERS DATA 1 -> MAIN DATA 1 and
+// KEYS DATA 3 -> MAIN DATA 3 are patched by default. The cables don't gate any control yet.
+const jackPos=id=>{const j=jacks[id],p=S.nodes[j.node];return{x:p.x+j.x,y:p.y+j.y}};
+function cablePath(a,b){const sag=Math.min(40,10+Math.hypot(b.x-a.x,b.y-a.y)*.25);return`M${a.x} ${a.y}C${a.x} ${a.y+sag} ${b.x} ${b.y+sag} ${b.x} ${b.y}`}
+const CABLE_COLORS=['#f2d22e','#ef6a4f','#6fc3ff','#f2f2f2','#b58cff'];
+const plugAt=(q,col,parent)=>{const g=el('g',{transform:`translate(${q.x} ${q.y})`,'pointer-events':'none'},parent);
+  el('circle',{r:2.5,fill:'#1d1d1f',stroke:'#4a4a4e','stroke-width':.35},g);el('circle',{r:1.3,fill:col,opacity:.9},g);return g};
+function drawCables(){
+  cablesG.textContent='';
+  S.cables=S.cables.filter(([a,b])=>jacks[a]&&jacks[b]);
+  S.cables.forEach(([a,b,ci],i)=>{
+    const pa=jackPos(a),pb=jackPos(b),col=CABLE_COLORS[(ci??i)%CABLE_COLORS.length];
+    el('path',{d:cablePath(pa,pb),fill:'none',stroke:'rgba(0,0,0,.35)','stroke-width':1.9,transform:'translate(0 1)','pointer-events':'none'},cablesG);
+    const p=el('path',{class:'cable',d:cablePath(pa,pb),style:`stroke:${col}`},cablesG);
+    plugAt(pa,col,cablesG);plugAt(pb,col,cablesG);
+    p.addEventListener('pointerdown',e=>e.stopPropagation());
+    p.addEventListener('click',()=>{S.cables.splice(i,1);lastTouched=`UNPLUG ${jacks[a].label}–${jacks[b].label}`;drawCables();save()});
+  });
+}
+const cableAt=id=>S.cables.findIndex(([a,b])=>a===id||b===id);
+let wiresQ=false;function scheduleWires(){if(wiresQ)return;wiresQ=true;requestAnimationFrame(()=>{wiresQ=false;drawCables();drawBody()})}
+function patchFrom(g,id){
+  let temp=null,anchor=null,col=null;
+  drag(g,(dx,dy,e)=>{const w=toWorld(e.clientX,e.clientY);temp.setAttribute('d',cablePath(jackPos(anchor),w));temp._plug.setAttribute('transform',`translate(${w.x} ${w.y})`)},
+    ()=>{
+      const k=cableAt(id);
+      if(k>=0){const[a,b,ci]=S.cables.splice(k,1)[0];anchor=a===id?b:a;col=ci??k;lastTouched=`${jacks[id].label}: plug out`}   // carry the plug that was here
+      else{anchor=id;col=S.cables.reduce((m,c)=>Math.max(m,(c[2]??0)+1),0)}
+      drawCables();const cc=CABLE_COLORS[col%CABLE_COLORS.length];
+      temp=el('path',{class:'cable',style:`stroke:${cc};pointer-events:none`},cablesG);temp._plug=plugAt(jackPos(anchor),cc,cablesG);
+      plugAt(jackPos(anchor),cc,cablesG);
+    },
+    e=>{temp&&temp.remove();temp?._plug.remove();temp=null;
+      const t=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-jack]');const to=t&&t.dataset.jack;
+      if(to&&to!==anchor){
+        const k=cableAt(to);if(k>=0)S.cables.splice(k,1);           // that jack's old plug pops out
+        S.cables.push([anchor,to,col]);lastTouched=`PATCH ${jacks[anchor].label}→${jacks[to].label}`}
+      else lastTouched=anchor!==id?`UNPLUG ${jacks[anchor].label}`:`${jacks[id].label}: drag to a jack`;
+      drawCables();save()});
+}
+
+// ---------- cables out of the main box (HDMI to the picture, USB power) ----------
+// Ports on the back wall (layout y=0) at the Pi Zero connector positions used for the box cut-outs.
+const BODY_PORTS=[{name:'HDMI',x:62.6,to:'screen',col:'#151517'},{name:'USB 5V',x:21,to:'top',col:'#2a2a2d'}];   // real RP2350-PiZero: USB left, mini HDMI right
+const bodyG=document.getElementById('body');
+function drawBody(){
+  if(!bodyG||!S.nodes.main)return;bodyG.textContent='';
+  const m=S.nodes.main,r=deskSvg.getBoundingClientRect();
+  for(const p of BODY_PORTS){
+    const a={x:m.x+p.x,y:m.y-HEAD+1};
+    const b=p.to==='screen'?{x:(-V.x)/V.k-4,y:a.y-26}:{x:m.x+p.x+18,y:(-V.y)/V.k-4};
+    const d=p.to==='screen'?`M${a.x} ${a.y}C${a.x} ${a.y-22} ${a.x-10} ${b.y} ${a.x-30} ${b.y}L${b.x} ${b.y}`:`M${a.x} ${a.y}C${a.x} ${a.y-25} ${b.x} ${b.y+25} ${b.x} ${b.y}`;
+    el('path',{d,fill:'none',stroke:p.col,'stroke-width':2.6,'stroke-linecap':'round'},bodyG);
+    el('path',{d,fill:'none',stroke:'#4b4b50','stroke-width':.5,'stroke-linecap':'round',opacity:.7,transform:'translate(-.5 -.4)'},bodyG);
+    el('rect',{x:a.x-3.2,y:a.y-6,width:6.4,height:6,rx:.8,fill:'#1b1b1d',stroke:'#444','stroke-width':.3},bodyG);
+    const t=el('text',{class:'node-sub',x:a.x+4,y:a.y-7.5,style:'text-anchor:start;fill:#9a9a9a'},bodyG);t.textContent=p.name;
+  }
+}
+
+(window.PANEL?.boards||[]).forEach(buildBoard);
+if(!S.cablesInit){S.cablesInit=true;const find=(n,l)=>Object.keys(jacks).find(k=>jacks[k].node===n&&jacks[k].label===l);
+  for(const[a,b]of[[find('faders','DATA 1'),find('main','DATA 1')],[find('keys','DATA 3'),find('main','DATA 3')]])if(a&&b)S.cables.push([a,b,0])}
+drawCables();drawBody();
+ui.knobs.forEach((k,i)=>k&&k.set(S.knob[i]));ui.faders.forEach((f,i)=>f&&f.set(S.fader[i]));ui.toggle&&ui.toggle.set(S.power);lastTouched='—';
+function frameAll(){
+  const bs=Object.values(nodeEls).map(({b})=>{const p=S.nodes[b.name];return[p.x-2,p.y-HEAD-(b.name==='main'?34:2),p.x+b.width+2,p.y+b.height+4]});if(!bs.length)return;
+  const x0=Math.min(...bs.map(b=>b[0])),y0=Math.min(...bs.map(b=>b[1])),x1=Math.max(...bs.map(b=>b[2])),y1=Math.max(...bs.map(b=>b[3]));
+  const r=deskSvg.getBoundingClientRect(),pad=24;V.k=Math.min(12,Math.max(.6,Math.min((r.width-2*pad)/(x1-x0),(r.height-2*pad-24)/(y1-y0))));
+  V.x=(r.width-(x1-x0)*V.k)/2-x0*V.k;V.y=(r.height-(y1-y0)*V.k)/2-y0*V.k;applyView();
+}
+document.getElementById('homeBtn').onclick=frameAll;
+document.getElementById('layoutBtn').onclick=()=>{for(const n in nodeEls){Object.assign(S.nodes[n],DEFAULT_POS[n]||{});nodeEls[n].g.setAttribute('transform',`translate(${S.nodes[n].x} ${S.nodes[n].y})`)}drawCables();frameAll()};
+if(S.view)applyView();else requestAnimationFrame(frameAll);
+
+function tap(){
+  const t=now();taps=taps.filter(x=>t-x<2.5);taps.push(t);
+  if(taps.length>=2){const d=[];for(let i=1;i<taps.length;i++)d.push(taps[i]-taps[i-1]);beatPeriod=d.reduce((a,b)=>a+b)/d.length}
+  beatOrigin=t;taps=taps.slice(-5);lastTouched=`TAP ${(60/beatPeriod).toFixed(0)} BPM`;
+}
+
+// ---------- keyboard ----------
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveIndexJs();return}
+  if(/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName)||e.metaKey||e.ctrlKey)return;const k=e.key.toLowerCase();
+  const i=KEYMAP_KEYS.indexOf(k);if(i>=0&&ui.keys[i]){ui.keys[i].press(true);e.preventDefault();return}
+  const j=KEYMAP_TAP.indexOf(k);if(j>=0&&ui.taps[j]&&!e.repeat){ui.taps[j].press(true);setTimeout(()=>ui.taps[j].press(false),90);return}
+  if(k===' '&&ui.noise){ui.noise.press(true);e.preventDefault();return}
+  if(k==='arrowright'||k===']'){selShader(1);e.preventDefault()}
+  if(k==='arrowleft'||k==='['){selShader(-1);e.preventDefault()}
+  if((k==='.'||k==='arrowup')&&ui.enc){ui.enc.step(1);e.preventDefault()}
+  if((k===','||k==='arrowdown')&&ui.enc){ui.enc.step(-1);e.preventDefault()}
+  if(k==='enter'&&ui.toggle&&!e.repeat)ui.toggle.set(!S.power);
+  if(k==='f'&&!e.repeat)toggleFs();
+  if(k==='home'||(k==='h'&&!e.repeat)){frameAll();e.preventDefault()}
+});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();const i=KEYMAP_KEYS.indexOf(k);if(i>=0&&ui.keys[i])ui.keys[i].press(false);if(k===' '&&ui.noise)ui.noise.press(false)});
+addEventListener('blur',()=>{ui.keys.forEach(k=>k&&k.press(false));ui.noise&&ui.noise.press(false)});
+addEventListener('resize',()=>{if(!S.view)frameAll();drawBody()});
+document.getElementById('help').innerHTML=[
+  ['','PLAY'],['Q W E R / A S D F','keys box, row 1 / row 2'],['1 2 3 4','TAP tempo'],['↑ ↓  . ,','GOOD KNOB (endless; turn = better)'],['SPACE','RESET (GOOD back to 0)'],['← →  [ ]','shader (emulator only for now)'],['ENTER','POWER toggle (main box on / off)'],['F','fullscreen picture'],
+  ['','CONTROLS'],['drag / wheel','knobs, faders, encoder'],['double-click','knob → centre'],['drag jack → jack','patch; drag a plugged jack to re-patch, drop on desk to unplug'],
+  ['','DESK'],['drag empty desk','pan (or middle button)'],['wheel / pinch','zoom (two-finger scroll pans)'],['drag node header','move a panel'],['H / Home','frame all']
+].map(([a,b])=>a?`<b>${a}</b><span>${b}</span>`:`<div class="h">${b}</div>`).join('');
+// ---------- WebGL ----------
+const cv=document.getElementById('screen'),errEl=document.getElementById('err');
+const gl=cv.getContext('webgl',{preserveDrawingBuffer:false,antialias:false});
+const HEADER=`precision mediump float;
+uniform vec2 u_resolution;uniform float u_time;uniform float u_beat;
+uniform float u_knob[6];uniform float u_fader[5];uniform float u_key[8];
+uniform float u_good;uniform float u_reset;uniform sampler2D u_prev;
+`;
+const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+function compile(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const m=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(m)}return s}
+function program(fs){const p=gl.createProgram();gl.attachShader(p,compile(gl.VERTEX_SHADER,VS));gl.attachShader(p,compile(gl.FRAGMENT_SHADER,fs));gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p}
+gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+const blit=program('precision mediump float;uniform sampler2D t;uniform vec2 r;void main(){gl_FragColor=texture2D(t,gl_FragCoord.xy/r);}');
+// GLSL ES 1.00 has no #line reset to 1 before the header in WebGL error logs, so offset the line numbers ourselves
+const HLINES=HEADER.split('\n').length-1;
+// compile one shader; on failure keep the last good program running and report the errors with editor line numbers
+function build(src,old){
+  try{const p=program(HEADER+src);if(old&&old.p)gl.deleteProgram(old.p);locCache.delete(old?.p);return{p,err:null,lines:[]}}
+  catch(e){const lines=[];const err=String(e.message).replace(/ERROR: 0:(\d+)/g,(m,n)=>{const l=n-HLINES;lines.push(l);return'line '+l}).trim();return{p:old?.p||null,err,lines}}
+}
+const locCache=new Map();
+const progs=shaders.map(s=>build(s.src,null));
+let fb=[],W=0,H=0,cur=0,frame=0;
+function setRes(r){W=r;H=r*3/4;cv.width=W;cv.height=H;fb.forEach(f=>{gl.deleteTexture(f.t);gl.deleteFramebuffer(f.f)});
+  fb=[0,1].map(()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,W,H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    for(const[k,v]of[[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
+    const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);return{t,f}});
+  S.res=r;save()}
+const resSel=document.getElementById('resSel');resSel.value=String(S.res);resSel.onchange=()=>setRes(+resSel.value);setRes(S.res===640?640:320);
+const shaderSel=document.getElementById('shaderSel');
+function fillShaderSel(){shaderSel.textContent='';shaders.forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${s.name}${isModified(i)?' *':''}`;shaderSel.appendChild(o)});shaderSel.value=curShader()}
+shaderSel.onchange=()=>selShader(+shaderSel.value-curShader());
+function onShaderChange(){if(!shaders.length)return;shaderSel.value=curShader();const p=progs[curShader()];
+  errEl.style.display=p.p?'none':'block';errEl.textContent=p.p?'':`${shaders[curShader()].name}: compile error\n${p.err}`;
+  loadEditor()}
+
+// ---------- shader editor ----------
+const code=document.getElementById('code'),gutter=document.getElementById('gutter'),edErr=document.getElementById('edErr');
+const edName=document.getElementById('edName'),edStatus=document.getElementById('edStatus');
+const isModified=i=>{const s=shaders[i];if(!s.fileName)return true;const f=FILE_SHADERS.find(f=>f.name===s.fileName);
+  return f.src!==s.src||s.name!==s.fileName||JSON.stringify(f.map||{})!==JSON.stringify(s.map||{})};
+function renderGutter(){
+  const n=code.value.split('\n').length,bad=new Set(progs[curShader()]?.lines||[]);let h='';
+  for(let i=1;i<=n;i++)h+=(bad.has(i)?`<span class="e">${i}</span>`:i)+'\n';gutter.innerHTML=h;gutter.scrollTop=code.scrollTop;
+  renderHl(bad);
+}
+// GLSL highlighting: a <pre> under a transparent textarea, same font and padding, scrolled together
+const hl=document.getElementById('hl');
+const KW=new Set('void if else for while do return break continue discard const uniform attribute varying in out inout precision highp mediump lowp struct true false'.split(' '));
+const TY=new Set('float int bool vec2 vec3 vec4 ivec2 ivec3 ivec4 bvec2 bvec3 bvec4 mat2 mat3 mat4 sampler2D'.split(' '));
+const FN=new Set('radians degrees sin cos tan asin acos atan pow exp log exp2 log2 sqrt inversesqrt abs sign floor ceil fract mod min max clamp mix step smoothstep length distance dot cross normalize reflect refract texture2D'.split(' '));
+const escH=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function hlLine(line){
+  let out='',m;const re=/(\/\/.*$)|(\/\*.*?\*\/)|(#\w+)|(\b\d+\.?\d*(?:e[-+]?\d+)?\b|\.\d+\b)|([A-Za-z_]\w*)|([^A-Za-z_\d\/#.]+|.)/g;
+  while((m=re.exec(line))){const[t]=m;
+    if(m[1]||m[2])out+=`<span class="c">${escH(t).replace(/@param\b/,'<span class="at">@param</span>')}</span>`;
+    else if(m[3])out+=`<span class="pp">${escH(t)}</span>`;
+    else if(m[4])out+=`<span class="n">${t}</span>`;
+    else if(m[5]){const c=KW.has(t)?'k':TY.has(t)?'t':FN.has(t)?'f':/^u_/.test(t)?'u':/^p_/.test(t)?'p':'';out+=c?`<span class="${c}">${t}</span>`:t}
+    else out+=escH(t)}
+  return out}
+function renderHl(bad=new Set(progs[curShader()]?.lines||[])){
+  hl.innerHTML=code.value.split('\n').map((l,i)=>bad.has(i+1)?`<span class="el">${hlLine(l)||' '}</span>`:hlLine(l)).join('\n')+'\n';
+  hl.scrollTop=code.scrollTop;hl.scrollLeft=code.scrollLeft}
+function renderStatus(){
+  const i=curShader(),p=progs[i];edErr.textContent=p.err||'';
+  edStatus.className='st '+(p.err?'bad':isModified(i)?'mod':'ok');
+  edStatus.textContent=p.err?`✕ ${p.lines.length} error${p.lines.length===1?'':'s'}`+(p.p?' (last good still running)':''):isModified(i)?'● edited (not saved to file)':'✓ compiled';
+  document.getElementById('edRevert').disabled=!shaders[i].fileName||!isModified(i);
+  document.getElementById('edDel').disabled=!!shaders[i].fileName||shaders.length<2;
+}
+function loadEditor(){const s=shaders[curShader()];if(!s)return;if(code.value!==s.src)code.value=s.src;edName.value=s.name;learnParam=null;desk.classList.remove('learning');renderGutter();renderStatus();renderMap();renderBadges()}
+let edT=0;
+code.addEventListener('input',()=>{renderGutter();clearTimeout(edT);edT=setTimeout(()=>{
+  const i=curShader();shaders[i].src=code.value;progs[i]=build(code.value,progs[i]);saveLib();renderGutter();renderStatus();fillShaderSel();onShaderChangeOverlay();renderMap();renderBadges()},250)});
+const onShaderChangeOverlay=()=>{const p=progs[curShader()];errEl.style.display=p.p?'none':'block';errEl.textContent=p.p?'':p.err};
+code.addEventListener('scroll',()=>{gutter.scrollTop=code.scrollTop;hl.scrollTop=code.scrollTop;hl.scrollLeft=code.scrollLeft});
+code.addEventListener('keydown',e=>{
+  const v=code.value,a=code.selectionStart,b=code.selectionEnd;
+  const put=(txt,s0,s1,ca,cb)=>{code.setRangeText(txt,s0,s1);code.selectionStart=ca;code.selectionEnd=cb;code.dispatchEvent(new Event('input'))};
+  if(e.key==='Tab'){e.preventDefault();
+    const ls=v.lastIndexOf('\n',a-1)+1;
+    if(a===b&&!e.shiftKey)return put('  ',a,b,a+2,a+2);
+    const le=v.indexOf('\n',b-1)<0?v.length:v.indexOf('\n',Math.max(b-1,a));const block=v.slice(ls,le);
+    const nb=e.shiftKey?block.replace(/^ {1,2}/gm,''):block.replace(/^/gm,'  ');return put(nb,ls,le,ls,ls+nb.length)}
+  if(e.key==='Enter'&&!e.isComposing){e.preventDefault();const ls=v.lastIndexOf('\n',a-1)+1;let ind=v.slice(ls).match(/^ */)[0];if(/\{\s*$/.test(v.slice(ls,a)))ind+='  ';return put('\n'+ind,a,b,a+1+ind.length,a+1+ind.length)}
+  if(e.key==='}'&&a===b){const ls=v.lastIndexOf('\n',a-1)+1;if(/^ +$/.test(v.slice(ls,a))&&a-ls>=2){e.preventDefault();return put('}',a-2,a,a-1,a-1)}}
+});
+edName.addEventListener('change',()=>{const n=edName.value.trim().toUpperCase().replace(/[^A-Z0-9_\- ]/g,'').slice(0,24);if(!n){edName.value=shaders[curShader()].name;return}
+  shaders[curShader()].name=n;edName.value=n;saveLib();fillShaderSel();renderStatus()});
+const TEMPLATE=`
+// NEW: describe the controls here. GOOD KNOB must make it better with every detent.
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution;
+  float g=max(u_good,0.0),lg=log(1.0+g);
+  vec3 c=0.5+0.5*cos(u_time+uv.xyx*(3.0+lg*4.0)+vec3(0.0,2.0,4.0));
+  c*=0.6+0.4*u_fader[0];
+  gl_FragColor=vec4(c,1.0);
+}`;
+function addShader(name,src){shaders.push({name,src,fileName:null});progs.push(build(src,null));S.shader=shaders.length-1;saveLib();fillShaderSel();onShaderChange();code.focus()}
+const uniqueName=base=>{let n=base,k=2;while(shaders.some(s=>s.name===n))n=`${base} ${k++}`;return n};
+document.getElementById('edNew').onclick=()=>addShader(uniqueName('NEW'),TEMPLATE);
+document.getElementById('edDup').onclick=()=>{const s=shaders[curShader()];addShader(uniqueName(s.name+' COPY'),s.src)};
+document.getElementById('edRevert').onclick=()=>{const i=curShader(),s=shaders[i];if(!s.fileName||!confirm(`Revert ${s.name} to the version in shaders/index.js?`))return;
+  s.src=fileSrc(s.fileName);s.name=s.fileName;progs[i]=build(s.src,progs[i]);saveLib();fillShaderSel();onShaderChange()};
+document.getElementById('edDel').onclick=()=>{const i=curShader();if(shaders[i].fileName||shaders.length<2||!confirm(`Delete ${shaders[i].name}?`))return;
+  shaders.splice(i,1);const [p]=progs.splice(i,1);p.p&&gl.deleteProgram(p.p);S.shader=Math.min(i,shaders.length-1);saveLib();fillShaderSel();onShaderChange()};
+
+// ---------- map tab ----------
+const mapPanel=document.getElementById('mapPanel'),codeBody=document.getElementById('codeBody');
+function setTab(map){document.getElementById('tabMap').classList.toggle('on',map);document.getElementById('tabCode').classList.toggle('on',!map);
+  mapPanel.classList.toggle('on',map);codeBody.style.display=map?'none':'';edErr.style.display=map?'none':'';S.tab=map?'map':'code';save();if(map)renderMap()}
+document.getElementById('tabCode').onclick=()=>setTab(false);document.getElementById('tabMap').onclick=()=>setTab(true);
+function renderMap(){
+  if(!mapPanel.classList.contains('on'))return;const s=shaders[curShader()];if(!s)return;const ps=parseParams(s.src);
+  if(!ps.length){mapPanel.innerHTML=`<p class="hint">No params in <b>${s.name}</b> yet. Declare one in the code, e.g.<br><code>uniform float p_zoom; // @param 0.5 4.0 1.0 zoom</code><br>(min max default label), then use <code>p_zoom</code> in the shader and map it here to any knob, fader, key, GOOD KNOB or beat.</p>`;return}
+  const opts=id=>`<option value="">— default —</option>`+SOURCES.map(([v,n])=>`<option value="${v}"${v===id?' selected':''}>${n}</option>`).join('');
+  mapPanel.innerHTML=`<table>${ps.map(p=>{const m=s.map[p.name];return`<tr data-p="${p.name}">
+    <td class="pn">${p.name.replace(/^p_/,'')}<div class="pl">${p.label||''}</div></td>
+    <td><select data-k="src">${opts(m?.src||'')}</select></td>
+    <td><button class="learn${learnParam===p.name?' on':''}" data-k="learn" title="then move a control on the desk">${learnParam===p.name?'move a control…':'learn'}</button></td>
+    <td><label title="invert"><input type="checkbox" data-k="inv"${m?.inv?' checked':''}${m?'':' disabled'}> inv</label></td>
+    <td class="bar" title="${p.min} … ${p.max}"><i></i></td></tr>`}).join('')}</table>
+    <p class="hint">learn → turn a knob / move a fader / press a key on the desk. Range comes from <code>@param min max default</code> in the code. Mapped controls show the param name on the desk.</p>`;
+}
+mapPanel.addEventListener('change',e=>{const tr=e.target.closest('tr');if(!tr)return;const s=shaders[curShader()],n=tr.dataset.p;
+  if(e.target.dataset.k==='src'){if(e.target.value)s.map[n]={src:e.target.value,inv:s.map[n]?.inv||false};else delete s.map[n]}
+  if(e.target.dataset.k==='inv'&&s.map[n])s.map[n].inv=e.target.checked;
+  saveLib();fillShaderSel();renderStatus();renderMap();renderBadges()});
+mapPanel.addEventListener('click',e=>{if(e.target.dataset.k!=='learn')return;const n=e.target.closest('tr').dataset.p;
+  learnParam=learnParam===n?null:n;desk.classList.toggle('learning',!!learnParam);renderMap()});
+function updateMapBars(){if(!mapPanel.classList.contains('on'))return;const s=shaders[curShader()];
+  for(const tr of mapPanel.querySelectorAll('tr[data-p]')){const p=parseParamsCached(s.src).find(q=>q.name===tr.dataset.p);if(!p)continue;
+    const v=paramValue(p,s.map),f=p.max===p.min?0:(v-p.min)/(p.max-p.min);tr.querySelector('.bar i').style.width=(Math.max(0,Math.min(1,f))*100).toFixed(1)+'%'}}
+let ppSrc=null,ppVal=[];const parseParamsCached=src=>{if(src!==ppSrc){ppSrc=src;ppVal=parseParams(src)}return ppVal};
+if(S.tab==='map')setTab(true);
+
+// save: write shaders/index.js directly where the browser allows it (Chrome File System Access), else download it
+function indexJs(){
+  const esc=s=>s.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$\{/g,'\\${');
+  return`// Shader list for the emulator (file:// pages cannot list or fetch files, so the sources live here).
+// Each entry is a GLSL ES 1.00 fragment shader body: write main(); the host adds precision + uniforms
+// (see AGENTS.md "Shader contract"). Keep the same text runnable on the Pi Zero.
+//
+// u_good (GOOD KNOB) grows without limit: 1.0 per full turn of the encoder, 0 after RESET.
+// Never use it raw where it can blow up. Use it through bounded shapes: g01() saturates, fract()/sin() cycle,
+// log() keeps adding detail slower and slower, so turning "always makes it a bit better" and never breaks.
+// Saved from the emulator's editor ${new Date().toISOString().slice(0,16).replace('T',' ')}.
+window.SHADERS = [
+${shaders.map(s=>`
+{ name: '${s.name.replace(/'/g,"\\'")}',${Object.keys(s.map||{}).length?` map: ${JSON.stringify(s.map)},`:''} src: \`${esc(s.src)}\`},
+`).join('')}
+];
+`}
+let fileHandle=null;
+async function saveIndexJs(){
+  const txt=indexJs();
+  try{
+    if(window.showSaveFilePicker){
+      if(!fileHandle)fileHandle=await showSaveFilePicker({suggestedName:'index.js',types:[{description:'JavaScript',accept:{'text/javascript':['.js']}}]});
+      const w=await fileHandle.createWritable();await w.write(txt);await w.close();
+      // what is on disk now matches the editor: make it the new baseline
+      FILE_SHADERS.length=0;for(const s of shaders){FILE_SHADERS.push({name:s.name,src:s.src,map:JSON.parse(JSON.stringify(s.map||{}))});s.fileName=s.name;s.base=s.src;s.baseMap=JSON.stringify(s.map||{})}
+      saveLib();fillShaderSel();renderStatus();edStatus.className='st ok';edStatus.textContent=`✓ saved to ${fileHandle.name}`;return}
+  }catch(e){if(e.name==='AbortError')return;console.warn(e)}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/javascript'}));a.download='index.js';a.click();
+  edStatus.className='st mod';edStatus.textContent='⬇ downloaded index.js — move it to shaders/';
+}
+document.getElementById('edSave').onclick=saveIndexJs;
+fillShaderSel();onShaderChange();
+
+function U(p,n){let m=locCache.get(p);if(!m){m={};locCache.set(p,m)}if(!(n in m))m[n]=gl.getUniformLocation(p,n);return m[n]}
+let last=now(),fps=0,fpsAcc=0,fpsN=0;
+function loop(){
+  const t=now(),dt=Math.min(.1,t-last);last=t;simTime+=dt;
+  fpsAcc+=dt;fpsN++;if(fpsAcc>.5){fps=fpsN/fpsAcc;fpsAcc=0;fpsN=0}
+  const booting=now()-bootAt<1.5,pr=S.power&&!booting?progs[curShader()]:null;
+  if(!pr||!pr.p){gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT)}
+  if(pr&&pr.p){
+    const src=fb[cur],dst=fb[1-cur];
+    gl.bindFramebuffer(gl.FRAMEBUFFER,dst.f);gl.viewport(0,0,W,H);gl.useProgram(pr.p);
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,src.t);
+    gl.uniform1i(U(pr.p,'u_prev'),0);gl.uniform2f(U(pr.p,'u_resolution'),W,H);gl.uniform1f(U(pr.p,'u_time'),simTime);
+    gl.uniform1f(U(pr.p,'u_beat'),((t-beatOrigin)/beatPeriod)%1);
+    gl.uniform1fv(U(pr.p,'u_knob'),S.knob);gl.uniform1fv(U(pr.p,'u_fader'),S.fader);
+    gl.uniform1fv(U(pr.p,'u_key'),keyState.map(env));gl.uniform1f(U(pr.p,'u_reset'),env(noiseState));gl.uniform1f(U(pr.p,'u_good'),S.good);
+    const sh=shaders[curShader()];for(const p of parseParamsCached(sh.src))gl.uniform1f(U(pr.p,p.name),paramValue(p,sh.map));
+    gl.drawArrays(gl.TRIANGLES,0,3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.useProgram(blit);gl.bindTexture(gl.TEXTURE_2D,dst.t);gl.uniform1i(U(blit,'t'),0);gl.uniform2f(U(blit,'r'),W,H);gl.drawArrays(gl.TRIANGLES,0,3);
+    cur=1-cur;
+  }
+  if(frame++%6===0){drawTft();updateMapBars()}
+  requestAnimationFrame(loop);
+}
+let tftKey='';
+function clearFrames(){for(const f of fb){gl.bindFramebuffer(gl.FRAMEBUFFER,f.f);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT)}gl.bindFramebuffer(gl.FRAMEBUFFER,null)}
+function drawTft(){const before=tftKey;paintTft();if(ui.tftImg&&(tftKey!==before||tftKey==='boot'))ui.tftImg.setAttribute('href',ui.tft.canvas.toDataURL())}
+function paintTft(){
+  const c=ui.tft;if(!c)return;
+  if(!S.power){if(tftKey!=='off'){c.fillStyle='#000';c.fillRect(0,0,284,76);tftKey='off'}return}
+  if(now()-bootAt<1.5){c.fillStyle='#000';c.fillRect(0,0,284,76);c.fillStyle='#7fe0c8';c.font='bold 15px ui-monospace,Menlo,monospace';c.textBaseline='top';c.fillText('onmk Vs-01  booting'+'.'.repeat(1+Math.floor(now()*4)%3),6,28);tftKey='boot';return}const bb=Math.floor(((now()-beatOrigin)/beatPeriod)%1*4);
+  const key=[curShader(),S.good.toFixed(2),beatPeriod.toFixed(3),S.power,lastTouched,Math.round(fps/5),W,bb,!!progs[curShader()]?.err].join('|');if(key===tftKey)return;tftKey=key;c.fillStyle='#000';c.fillRect(0,0,284,76);c.font='bold 15px ui-monospace,Menlo,monospace';c.textBaseline='top';
+  const n=shaders.length,i=curShader();c.fillStyle=progs[i]?.err?'#ff6b6b':'#7fe0c8';c.fillText(n?`▶ ${shaders[i].name}`:'NO SHADERS',6,5);
+  c.fillStyle='#5c6670';c.font='11px ui-monospace,Menlo,monospace';c.fillText(`${i+1}/${n}`,250,8);
+  c.fillStyle='#d8dde2';c.font='12px ui-monospace,Menlo,monospace';
+  c.fillText(`GOOD ${S.good>=0?'+':''}${S.good.toFixed(2).padStart(6)}  ${(60/beatPeriod).toFixed(0).padStart(3)} BPM`,6,28);
+  const b=((now()-beatOrigin)/beatPeriod)%1;c.fillStyle='#7fe0c8';c.fillRect(206,30,6+(1-b)*10,8);
+  c.fillStyle='#9aa3ab';c.fillText(lastTouched,6,46);c.fillStyle='#5c6670';c.fillText(`${fps.toFixed(0)} fps  ${W}x${H}`,6,61);
+}
+function toggleFs(){const w=document.getElementById('screenWrap');document.fullscreenElement?document.exitFullscreen():w.requestFullscreen?.()}
+document.getElementById('fsBtn').onclick=toggleFs;
+document.getElementById('resetBtn').onclick=()=>{ui.knobs.forEach(k=>k&&k.set(.5));ui.faders.forEach(f=>f&&f.set(.5));ui.toggle&&ui.toggle.set(true);lastTouched='RESET'};
+if(!gl){errEl.style.display='block';errEl.textContent='WebGL is not available in this browser.'}else requestAnimationFrame(loop);
+</script>
+</body>
+</html>

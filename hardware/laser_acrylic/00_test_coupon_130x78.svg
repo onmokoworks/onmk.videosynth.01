@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="130mm" height="78mm" viewBox="0 0 130 78">
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M2.000,0.000 H128.000 A2,2 0 0 1 130.000,2.000 V76.000 A2,2 0 0 1 128.000,78.000 H2.000 A2,2 0 0 1 0.000,76.000 V2.000 A2,2 0 0 1 2.000,0.000 Z"/>
+<text x="15.00" y="7.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">13.6</text>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="8.200,9.000 21.800,9.000 21.800,22.600 8.200,22.600"/>
+<text x="33.00" y="7.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">13.8</text>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="26.100,9.000 39.900,9.000 39.900,22.800 26.100,22.800"/>
+<text x="51.00" y="7.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">13.95</text>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="44.025,9.000 57.975,9.000 57.975,22.950 44.025,22.950"/>
+<text x="69.00" y="7.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">14.1</text>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="61.950,9.000 76.050,9.000 76.050,23.100 61.950,23.100"/>
+<text x="12.00" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">7</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="12.000" cy="34.500" r="3.500"/>
+<text x="24.00" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">7.2</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="24.000" cy="34.600" r="3.600"/>
+<text x="36.00" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">7.4</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="36.000" cy="34.700" r="3.700"/>
+<text x="56.50" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">9</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="56.500" cy="35.500" r="4.500"/>
+<text x="69.50" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">9.2</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="69.500" cy="35.600" r="4.600"/>
+<text x="82.50" y="29.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">9.4</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="82.500" cy="35.700" r="4.700"/>
+<text x="11.00" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">6</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="52.000" r="3.000"/>
+<text x="21.00" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">6.2</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="21.000" cy="52.100" r="3.100"/>
+<text x="31.00" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">6.4</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="31.000" cy="52.200" r="3.200"/>
+<text x="46.00" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">3.2</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="46.000" cy="50.600" r="1.600"/>
+<text x="54.00" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">3.4</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="54.000" cy="50.700" r="1.700"/>
+<text x="69.50" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">12</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="69.500" cy="55.000" r="6.000"/>
+<text x="84.50" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">12.3</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="84.500" cy="55.150" r="6.150"/>
+<text x="99.50" y="47.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">12.6</text>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="99.500" cy="55.300" r="6.300"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="40.000,69.500 90.000,69.500 90.000,72.500 40.000,72.500"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="37.000" cy="71.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="93.000" cy="71.000" r="1.100"/>
+<text x="65.00" y="68.00" font-family="Helvetica" font-size="2.6" text-anchor="middle" fill="#000">スライド 50×3 / M2 2.2</text>
+</svg>

@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vs-01 配線図</title>
+<style>
+:root{--bg:#f4f2ec;--ink:#1f2326;--dim:#6b6f73;--line:#d9d5cc;--card:#fff;--accent:#2a8a78;--warn:#b5491f;--y:#dfab00;--cap:#a9cfe0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1d1f;--ink:#e6e6e6;--dim:#9a9a9a;--line:#333;--card:#252629;--accent:#7fe0c8;--warn:#ff9466}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.7 -apple-system,"Hiragino Sans",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:36px 0 10px;padding-top:8px;border-top:2px solid var(--ink)}
+h3{font-size:14px;margin:20px 0 6px}
+.sub{color:var(--dim);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:600;white-space:nowrap}
+td code,p code,li code{font:12.5px ui-monospace,Menlo,monospace;background:rgba(127,127,127,.12);padding:1px 4px;border-radius:3px}
+.pin{font:600 12.5px ui-monospace,Menlo,monospace;color:var(--accent);white-space:nowrap}
+.warn{border-left:4px solid var(--warn)}.warn b{color:var(--warn)}
+.flow{font:12.5px/1.55 ui-monospace,Menlo,monospace;white-space:pre;overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;background:var(--cap);color:#1f3a46;margin-left:6px}
+ul{padding-left:20px}
+.dia{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;margin:12px 0;overflow-x:auto}
+.dia svg{display:block;min-width:720px;width:100%;height:auto;font-family:ui-monospace,Menlo,monospace}
+.dia .blk{fill:var(--bg);stroke:var(--ink);stroke-width:1.4}
+.dia .bt{font:700 13px -apple-system,"Hiragino Sans",sans-serif;fill:var(--ink)}
+.dia .pl{font-size:11px;fill:var(--ink)}.dia .pn{font-size:10px;fill:var(--dim)}
+.dia .w{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.dia .dot{stroke:none}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--dim);margin:4px 2px 0}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>Vs-01 配線図</h1>
+<p class="sub">2026-10-27 版（v2：Codex の監査を反映）。箱ごとにマイコンを入れて、DATA ケーブル（3.5mm ステレオ）で値をメインに集め、Pi Zero v1.3 が GLSL で映像を作る構成。</p>
+
+<div class="flow">[フェーダー箱]  Pico ＋ 74HC4067     ノブ4・フェーダー5
+      │  DATA 1 ケーブル：先端 = 信号（箱 → メイン）／中間 = 5V（メイン → 箱）／根元 = GND
+[キー箱]        RP2350-PiZero        キー8・TAP4（全部ボタンなのでアナログ入力はいらない）
+      │  DATA 3 ケーブル：同じ
+[メイン]        Pico                 ノブ2・GOOD KNOB（エンコーダー）・RESET ＋ 横の箱の値をまとめる
+      │  UART（TX と GND の2本）
+[メイン]        Pi Zero v1.3         シェーダー → HDMI、小さい液晶（TFT）も Pi Zero が表示
+[メイン]        USB-C 電源入口 → POWER トグル → 5V（全部に配る）</div>
+
+<div class="legend"><span><i style="background:#d6453d"></i>3.3V</span><span><i style="background:#e58a1f"></i>5V</span><span><i style="background:#777"></i>GND</span><span><i style="background:#3b82c4"></i>アナログ（ノブ・フェーダー）</span><span><i style="background:#2a8a78"></i>デジタル（キー・エンコーダー・切り替え）</span><span><i style="background:#8a5cc4"></i>シリアル（UART）・液晶</span></div>
+<p class="sub" style="margin-top:6px">図の中の <b>3V3 / 5V / GND</b> の小さな札は「同じ名前の札どうしは全部つながっている」という意味（線を全部描くと見づらいので省略）。</p>
+
+<div class="card warn"><b>守ること（これだけ）</b>
+<ul>
+<li><b>電源を入れたまま DATA ケーブルを抜き挿ししない。</b>挿す瞬間に 5V が信号線に触れてマイコンを壊すことがある。展示中はケーブルをテープで固定する。</li>
+<li>ノブ・フェーダーの端は <b>3.3V</b> につなぐ（5V はだめ）。</li>
+<li>横の箱は、<b>DATA の 5V → ショットキーダイオード → 電源入力</b>。帯のある側を基板側に。USB を挿したまま動かしても逆流しない。</li>
+<li>DATA の信号線（先端）には、<b>箱側とメイン側の両方に 1kΩ</b> を入れる（念のための保護）。</li>
+<li>箱の柱に載せて端子を壁の穴に合わせるのは <b>Pi Zero</b>。メインの Pico は箱の中の空いた所に両面テープで固定。</li>
+<li>Pi Zero は電源を急に切られても壊れないよう<b>読み込み専用</b>にする（再生プログラムを入れるときに設定）。</li>
+</ul></div>
+
+<h2>1. フェーダー箱（Pico ＋ 74HC4067）</h2>
+<div class="dia" id="diaF"></div>
+<div class="grid">
+<div class="card"><h3>74HC4067 モジュール</h3>
+<table><tr><th>モジュール</th><th>Pico</th></tr>
+<tr><td>VCC</td><td><span class="pin">3V3(OUT)</span> 36番ピン（すぐそばに 100nF を VCC–GND 間に）</td></tr>
+<tr><td>GND</td><td><span class="pin">GND</span></td></tr>
+<tr><td>EN</td><td><span class="pin">GND</span>（常に有効）</td></tr>
+<tr><td>S0 / S1 / S2 / S3</td><td><span class="pin">GP2 / GP3 / GP4 / GP5</span></td></tr>
+<tr><td>SIG</td><td><span class="pin">GP26</span>（ADC0）31番ピン</td></tr></table>
+<p>買うのは「74<b>HC</b>4067」（HCT ではない方）。</p></div>
+<div class="card"><h3>ノブ・フェーダー → 74HC4067</h3>
+<table><tr><th>部品</th><th>チャンネル</th></tr>
+<tr><td>ノブ 0〜3（左から）</td><td><span class="pin">C0 / C1 / C2 / C3</span></td></tr>
+<tr><td>フェーダー 0〜4（左から）</td><td><span class="pin">C4 / C5 / C6 / C7 / C8</span></td></tr></table>
+<p>それぞれ3本足：<b>片端 → 3V3</b>、<b>反対の端 → GND</b>、<b>ワイパー → チャンネル</b>。どの足がワイパーかはテスターで確かめる（真ん中とは限らない）。回す向きが逆なら端の2本を入れ替える。</p></div>
+<div class="card"><h3>DATA 1 ジャック</h3>
+<table><tr><th>ジャック</th><th>Pico</th></tr>
+<tr><td>先端（Tip）</td><td><b>1kΩ</b> → <span class="pin">GP0</span>（UART0 TX）1番ピン</td></tr>
+<tr><td>中間（Ring）</td><td><b>ダイオード</b>（帯が Pico 側）→ <span class="pin">VSYS</span> 39番ピン</td></tr>
+<tr><td>根元（Sleeve）</td><td><span class="pin">GND</span></td></tr></table></div>
+</div>
+
+<h2>2. キー箱（RP2350-PiZero）</h2>
+<p>GP 番号は RP2350 のピン番号。40ピンの物理番号や Pi の GPIO 番号とは<b>別物</b>なので、基板の印刷（GP○○）を見てつなぐ。</p>
+<div class="dia" id="diaK"></div>
+<div class="grid">
+<div class="card"><h3>キー・TAP</h3>
+<table><tr><th>部品</th><th>RP2350-PiZero</th></tr>
+<tr><td>キー 0〜3（上の段、左から）</td><td><span class="pin">GP2 / GP3 / GP4 / GP5</span></td></tr>
+<tr><td>キー 4〜7（下の段、左から）</td><td><span class="pin">GP6 / GP7 / GP8 / GP9</span></td></tr>
+<tr><td>TAP 0〜3（左から）</td><td><span class="pin">GP10 / GP11 / GP12 / GP13</span></td></tr></table>
+<p>スイッチの<b>片足 → GP</b>、<b>もう片足 → GND</b>。抵抗はいらない（内蔵のプルアップを使う）。基板にその GP が出ていなければ、空いている別の GP に変えて教えてください（プログラム側で合わせます）。</p></div>
+<div class="card"><h3>DATA 3 ジャック</h3>
+<table><tr><th>ジャック</th><th>RP2350-PiZero</th></tr>
+<tr><td>先端</td><td><b>1kΩ</b> → <span class="pin">GP0</span>（UART0 TX）</td></tr>
+<tr><td>中間</td><td><b>ダイオード</b>（帯が基板側）→ <span class="pin">5V</span> ピン</td></tr>
+<tr><td>根元</td><td><span class="pin">GND</span></td></tr></table></div>
+</div>
+
+<h2>3. メイン（Pico ＋ Pi Zero v1.3）</h2>
+<div class="dia" id="diaM"></div>
+<div class="grid">
+<div class="card"><h3>Pico：メインのつまみ</h3>
+<table><tr><th>部品</th><th>Pico</th></tr>
+<tr><td>ノブ 0（中央左）ワイパー</td><td><span class="pin">GP26</span>（ADC0）31番</td></tr>
+<tr><td>ノブ 1（右下）ワイパー</td><td><span class="pin">GP27</span>（ADC1）32番</td></tr>
+<tr><td>ノブの両端</td><td><span class="pin">3V3(OUT)</span> 36番 と <span class="pin">GND</span></td></tr>
+<tr><td>GOOD KNOB（RE160F）A / B</td><td><span class="pin">GP16 / GP17</span> 21・22番</td></tr>
+<tr><td>GOOD KNOB の C（共通）</td><td><span class="pin">GND</span>（C の足は端子図とテスターで確認）</td></tr>
+<tr><td>RESET キー</td><td><span class="pin">GP18</span> 24番 ／ もう片足 GND</td></tr></table></div>
+<div class="card"><h3>Pico：DATA ジャック</h3>
+<table><tr><th>ジャック</th><th>つなぎ先</th></tr>
+<tr><td>DATA 1 先端（フェーダー箱から）</td><td><b>1kΩ</b> → <span class="pin">GP1</span>（UART0 RX）2番</td></tr>
+<tr><td>DATA 3 先端（キー箱から）</td><td><b>1kΩ</b> → <span class="pin">GP5</span>（UART1 RX）7番</td></tr>
+<tr><td>DATA 1・3 中間</td><td>5V → <b>ポリスイッチ MF-RX020</b> → 中間（ジャックごとに1本）</td></tr>
+<tr><td>DATA 1・3 根元</td><td><span class="pin">GND</span></td></tr>
+<tr><td>DATA 7・8</td><td>何もつながない（予備）</td></tr></table></div>
+<div class="card"><h3>Pico → Pi Zero</h3>
+<table><tr><th>Pico</th><th>Pi Zero（40ピン）</th></tr>
+<tr><td><span class="pin">GP0</span>（UART0 TX）1番</td><td><span class="pin">GPIO15 / RXD</span> 10番ピン</td></tr>
+<tr><td><span class="pin">GND</span></td><td><span class="pin">GND</span> 6番ピン</td></tr></table></div>
+<div class="card"><h3>小さい液晶（ST7789 2.25"）→ Pi Zero</h3>
+<table><tr><th>液晶</th><th>Pi Zero（40ピン）</th></tr>
+<tr><td>VCC</td><td><span class="pin">3V3</span> 17番</td></tr>
+<tr><td>GND</td><td><span class="pin">GND</span> 20番</td></tr>
+<tr><td>SCL / SCK</td><td><span class="pin">GPIO11</span> 23番</td></tr>
+<tr><td>SDA / MOSI</td><td><span class="pin">GPIO10</span> 19番</td></tr>
+<tr><td>CS</td><td><span class="pin">GPIO8 / CE0</span> 24番</td></tr>
+<tr><td>DC</td><td><span class="pin">GPIO25</span> 22番</td></tr>
+<tr><td>RES</td><td><span class="pin">GPIO24</span> 18番</td></tr>
+<tr><td>BLK（バックライト）</td><td><span class="pin">GPIO18</span> 12番（つながなくても点く型が多い）</td></tr></table>
+<p>シェーダー名や GOOD の値は Pi Zero が知っているので、液晶も Pi Zero が表示する。</p></div>
+<div class="card"><h3>電源</h3>
+<table><tr><th>から</th><th>へ</th></tr>
+<tr><td>USB-C 電源モジュール 5V</td><td>POWER トグルの片側</td></tr>
+<tr><td>POWER トグルのもう片側（＝5V）</td><td>Pi Zero <span class="pin">5V</span> 2番、メイン Pico <span class="pin">VSYS</span> 39番、DATA 用ポリスイッチ</td></tr>
+<tr><td>USB-C 電源モジュール GND</td><td>全部の GND</td></tr></table>
+<p>5V 2A 以上の USB 充電器。電源の入口のそばに 10〜47µF のコンデンサがあると安定する。<br>Pi Zero を 5V ピンから給電している間は、Pi Zero の micro USB には何も挿さない。</p></div>
+</div>
+
+<h2>4. 送るデータの形（プログラム用）</h2>
+<div class="card">
+<table><tr><th>どこ → どこ</th><th>形</th><th>頻度</th></tr>
+<tr><td>フェーダー箱 → メイン</td><td><code>F,k2,k3,k4,k5,f0,f1,f2,f3,f4\n</code>（0〜4095、ノブは全体の番号 2〜5）</td><td>50 回/秒</td></tr>
+<tr><td>キー箱 → メイン</td><td><code>K,kkkkkkkk,tttt\n</code>（押している所が 1）</td><td>変化したとき＋10 回/秒</td></tr>
+<tr><td>メイン Pico → Pi Zero</td><td><code>V,k0..k5,f0..f4,keys,taps,enc,reset\n</code>（ノブ・フェーダーは 0〜1、enc は回した段数の合計。<code>u_good = enc/24</code>）</td><td>60 回/秒</td></tr></table>
+<p>どれも 115200bps・8N1。Pi Zero v1.3 の GPIO15 は本物の UART（ttyAMA0）：<code>enable_uart=1</code>、シリアルコンソールは切る。</p>
+<p>読み取りのコツ（プログラム側）：74HC4067 は切り替えて 20µs 待ち、1回捨ててから数回平均。エンコーダーは A/B の状態変化で数える。</p>
+</div>
+
+<h2>5. 買い足すもの</h2>
+<div class="card"><ul>
+<li><b>74HC4067 モジュール</b> ×1（予備込みで2）— フェーダー箱</li>
+<li><b>USB-C 電源モジュール（5V を取り出すだけ）</b> ×1 — 電源入口</li>
+<li><b>1kΩ 抵抗</b> ×4、<b>ショットキーダイオード</b>（1N5817 など）×2、<b>100nF</b> ×1、<b>10〜47µF</b> ×2〜3</li>
+<li>メス-メスのジャンパ線、細い配線用の線</li>
+<li>（手持ち）Pico ×2、RP2350-PiZero、Pi Zero v1.3（10/28 着）、ポリスイッチ MF-RX020、3.5mm ステレオジャック</li>
+</ul></div>
+</main>
+<script>
+// tiny schematic drawer: blocks with pins, elbow wires, net flags (3V3 / 5V / GND)
+const C={'3V3':'#d6453d','5V':'#e58a1f',GND:'#777',ana:'#3b82c4',dig:'#2a8a78',ser:'#8a5cc4'};
+function Dia(id,W,H){
+  const NS='http://www.w3.org/2000/svg',host=document.getElementById(id);
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);host.appendChild(svg);
+  const wires=document.createElementNS(NS,'g'),top=document.createElementNS(NS,'g');svg.append(wires,top);
+  const el=(t,a,p=top)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
+  const txt=(x,y,s,cls,anchor='start',p=top)=>{const t=el('text',{x,y,class:cls,'text-anchor':anchor,'dominant-baseline':'middle'},p);t.textContent=s;return t};
+  const api={
+    block(x,y,w,title,left=[],right=[],sp=19){
+      const n=Math.max(left.length,right.length),h=30+n*sp+6,P={};
+      el('rect',{x,y,width:w,height:h,rx:6,class:'blk'});txt(x+w/2,y+15,title,'bt','middle');
+      left.forEach((p,i)=>{const py=y+30+i*sp+sp/2;el('line',{x1:x-8,y1:py,x2:x,y2:py,stroke:'currentColor','stroke-width':1.4});
+        txt(x+6,py,p[1],'pl');if(p[2])txt(x-10,py-8,p[2],'pn','end');P[p[0]]={x:x-8,y:py}});
+      right.forEach((p,i)=>{const py=y+30+i*sp+sp/2;el('line',{x1:x+w,y1:py,x2:x+w+8,y2:py,stroke:'currentColor','stroke-width':1.4});
+        txt(x+w-6,py,p[1],'pl','end');if(p[2])txt(x+w+10,py-8,p[2],'pn');P[p[0]]={x:x+w+8,y:py}});
+      return P},
+    wire(a,b,col,mx){const m=mx??(a.x+b.x)/2;el('path',{d:`M${a.x} ${a.y}H${m}V${b.y}H${b.x}`,class:'w',stroke:col},wires);
+      for(const q of[a,b])el('circle',{cx:q.x,cy:q.y,r:2.6,fill:col,class:'dot'},wires)},
+    flag(p,net,dx=26){const x2=p.x+dx;el('path',{d:`M${p.x} ${p.y}H${x2}`,class:'w',stroke:C[net]},wires);
+      const w=net.length*7+10,x0=dx>0?x2:x2-w;el('rect',{x:x0,y:p.y-8,width:w,height:16,rx:8,fill:C[net]});
+      const t=txt(x0+w/2,p.y+.5,net,'pl','middle');t.setAttribute('fill','#fff');t.setAttribute('font-weight','700')},
+    pot(x,y,label){   // wiper pin on the left, ends flagged 3V3 / GND on the right
+      el('rect',{x,y:y-13,width:96,height:26,rx:5,class:'blk'});txt(x+8,y,label,'pl');
+      el('path',{d:`M${x+58} ${y-8}l4 3l-8 3l8 3l-8 3l4 2`,fill:'none',stroke:'currentColor','stroke-width':1.2});
+      const P={w:{x:x-8,y}};el('line',{x1:x-8,y1:y,x2:x,y2:y,stroke:'currentColor','stroke-width':1.4});
+      api.flag({x:x+96,y:y-6},'3V3',14);api.flag({x:x+96,y:y+6},'GND',14);return P},
+    sw(x,y,label){   // switch: pin on the left, other side to GND
+      el('line',{x1:x-8,y1:y,x2:x,y2:y,stroke:'currentColor','stroke-width':1.4});el('circle',{cx:x+3,cy:y,r:3,fill:'none',stroke:'currentColor','stroke-width':1.4});
+      el('line',{x1:x+6,y1:y,x2:x+26,y2:y-8,stroke:'currentColor','stroke-width':1.6});el('circle',{cx:x+29,cy:y,r:3,fill:'none',stroke:'currentColor','stroke-width':1.4});
+      api.flag({x:x+32,y},'GND',22);txt(x+98,y,label,'pl');return{p:{x:x-8,y}}},
+    fuse(a,b,label){const mx=(a.x+b.x)/2;api.wire(a,{x:mx-16,y:b.y},C['5V'],a.x+(mx-16-a.x)/2);el('rect',{x:mx-16,y:b.y-6,width:32,height:12,rx:3,fill:'none',stroke:C['5V'],'stroke-width':1.6});
+      txt(mx,b.y-14,label,'pn','middle');api.wire({x:mx+16,y:b.y},b,C['5V'])},
+    inline(a,b,kind,label,col,sx){   // a -> [part] -> b ; the part sits on b's row
+      sx=sx??(a.x+b.x)/2;const k0=b.x>=a.x?1:-1;api.wire(a,{x:sx-14*k0,y:b.y},col,a.x+(sx-14*k0-a.x)/2);
+      if(kind==='res')el('path',{d:`M${sx-14} ${b.y}h4l2-5l4 10l4-10l4 10l4-10l2 5h4`,fill:'none',stroke:col,'stroke-width':1.8});
+      if(kind==='diode'){const k=b.x>=a.x?1:-1;   // arrow (current) points toward b, the bar is b's side
+        el('path',{d:`M${sx-14} ${b.y}H${sx+14}`,fill:'none',stroke:col,'stroke-width':1.6});
+        el('path',{d:`M${sx-6*k} ${b.y-6}V${b.y+6}L${sx+5*k} ${b.y}Z`,fill:col,stroke:col,'stroke-width':1.4});
+        el('path',{d:`M${sx+6*k} ${b.y-6}V${b.y+6}`,fill:'none',stroke:col,'stroke-width':2.2})}
+      if(kind==='fuse')el('rect',{x:sx-14,y:b.y-6,width:28,height:12,rx:3,fill:'none',stroke:col,'stroke-width':1.6});
+      txt(sx,b.y-14,label,'pn','middle');api.wire({x:sx+14*k0,y:b.y},b,col)},
+    note(x,y,s){txt(x,y,s,'pn')}
+  };
+  return api;
+}
+
+// ---- 1. faders box ----
+{const d=Dia('diaF',900,440);
+ const P=d.block(20,30,150,'Pico',[],[['v','3V3(OUT)','36'],['g','GND','38'],['s0','GP2','4'],['s1','GP3','5'],['s2','GP4','6'],['s3','GP5','7'],['sig','GP26 / ADC0','31'],['tx','GP0 / TX','1'],['vs','VSYS','39'],['g2','GND','3']]);
+ const M=d.block(330,30,150,'74HC4067',[['vcc','VCC'],['gnd','GND'],['en','EN'],['s0','S0'],['s1','S1'],['s2','S2'],['s3','S3'],['sig','SIG']],
+   [['c0','C0'],['c1','C1'],['c2','C2'],['c3','C3'],['c4','C4'],['c5','C5'],['c6','C6'],['c7','C7'],['c8','C8']]);
+ d.flag(P.v,'3V3');d.flag(P.g,'GND');d.flag(M.vcc,'3V3',-26);d.flag(M.gnd,'GND',-26);d.flag(M.en,'GND',-26);
+ [['s0','s0'],['s1','s1'],['s2','s2'],['s3','s3']].forEach(([a,b],i)=>d.wire(P[a],M[b],C.dig,230+i*6));
+ d.wire(P.sig,M.sig,C.ana,260);
+ // pots sit at the mux pin heights so the wiper wires stay straight; 26px apart needs a fan-out
+ ['ノブ 0','ノブ 1','ノブ 2','ノブ 3','フェーダー 0','フェーダー 1','フェーダー 2','フェーダー 3','フェーダー 4'].forEach((l,i)=>{
+   const p=d.pot(640,46+i*30,l);d.wire(M['c'+i],p.w,C.ana,530+i*8)});
+ const J=d.block(330,330,150,'DATA 1 ジャック',[['t','先端 Tip'],['r','中間 Ring'],['s','根元 Sleeve']]);
+ d.inline(P.tx,J.t,'res','1kΩ',C.ser,290);d.inline(J.r,{x:P.vs.x+60,y:J.r.y},'diode','',C['5V'],J.r.x-40);d.note(J.r.x-190,J.r.y+34,'ダイオード（帯→Pico）');d.wire({x:P.vs.x+60,y:J.r.y},P.vs,C['5V'],P.vs.x+60);d.wire(P.g2,J.s,C.GND,220);
+ d.note(500,360,'→ メインの DATA 1 へ（ステレオケーブル）');d.note(500,380,'中間＝5V はメインから来る（ダイオードの帯は Pico 側）');
+}
+
+// ---- 2. keys box ----
+{const d=Dia('diaK',900,470);
+ const names=['キー 0（上段 左）','キー 1','キー 2','キー 3（上段 右）','キー 4（下段 左）','キー 5','キー 6','キー 7（下段 右）','TAP 0（左）','TAP 1','TAP 2','TAP 3（右）'];
+ const pins=names.map((n,i)=>['k'+i,`GP${i+2}`]);
+ const P=d.block(20,20,170,'RP2350-PiZero',[],[...pins,['g','GND']],30);
+ d.flag(P.g,'GND');
+ names.forEach((n,i)=>{const s=d.sw(330,P['k'+i].y,n);d.wire(P['k'+i],s.p,C.dig)});
+ const J=d.block(730,40,150,'DATA 3 ジャック',[['t','先端 Tip'],['r','中間 Ring'],['s','根元 Sleeve']]);
+ const Q=d.block(700,190,150,'RP2350（同じ基板）',[['tx','GP0 / TX'],['vs','5V'],['g','GND']]);
+ d.wire(Q.tx,{x:640,y:J.t.y},C.ser,640);d.inline({x:640,y:J.t.y},J.t,'res','1kΩ',C.ser,685);
+ d.wire(J.r,{x:628,y:Q.vs.y},C['5V'],628);d.inline({x:628,y:Q.vs.y},Q.vs,'diode','',C['5V'],664);d.note(560,Q.vs.y+16,'ダイオード（帯→基板）');
+ d.wire(J.s,Q.g,C.GND,616);
+ d.note(640,300,'スイッチの反対側はすべて GND。抵抗は不要');d.note(640,320,'（内蔵のプルアップを使う）');
+ d.note(640,350,'→ メインの DATA 3 へ（ステレオケーブル）');
+}
+
+// ---- 3. main ----
+{const d=Dia('diaM',900,1050);
+ // RP2350 in the middle; left = the two DATA jacks (inputs), right = panel parts and the Pi Zero (outputs)
+ const R=d.block(330,20,190,'Pico（メイン）',[['rx1','GP1 / UART0 RX','2'],['rx2','GP5 / UART1 RX','7'],['v5','VSYS','39'],['g','GND','38']],
+   [['a0','GP26 / ADC0','31'],['a1','GP27 / ADC1','32'],['ea','GP16','21'],['eb','GP17','22'],['rs','GP18','24'],['tx','GP0 / UART0 TX','1'],['v','3V3(OUT)','36']],70);
+ d.flag(R.v,'3V3');d.flag(R.v5,'5V',-26);d.flag(R.g,'GND',-26);
+ const k0=d.pot(640,R.a0.y,'ノブ 0');d.wire(R.a0,k0.w,C.ana);
+ const k1=d.pot(640,R.a1.y,'ノブ 1');d.wire(R.a1,k1.w,C.ana);
+ const E=d.block(640,R.ea.y-52,170,'GOOD KNOB RE160F',[['a','A'],['b','B']],[['c','C 共通']],44);
+ d.wire(R.ea,E.a,C.dig);d.wire(R.eb,E.b,C.dig);d.flag(E.c,'GND',18);
+ const s=d.sw(640,R.rs.y,'RESET キー');d.wire(R.rs,s.p,C.dig);
+ const PZ=d.block(640,R.tx.y-52,170,'Pi Zero v1.3',[['rx','GPIO15 / RXD','10'],['g','GND','6'],['v','5V','2']],[],44);
+ d.wire(R.tx,PZ.rx,C.ser);d.flag(PZ.g,'GND',-26);d.flag(PZ.v,'5V',-26);
+ d.note(640,PZ.v.y+40,'HDMI → 外の画面');
+ const L=d.block(560,R.v.y+120,170,'小さい液晶 ST7789',[['vcc','VCC'],['gnd','GND'],['sck','SCL / SCK'],['sda','SDA / MOSI'],['cs','CS'],['dc','DC'],['rst','RES']],[],22);
+ [['vcc','3V3','17'],['gnd','GND','20'],['sck','GPIO11','23'],['sda','GPIO10','19'],['cs','GPIO8 CE0','24'],['dc','GPIO25','22'],['rst','GPIO24','18']].forEach(([k,n,pin],i)=>{
+   const y=L[k].y;d.wire({x:L[k].x,y},{x:L[k].x-24,y},k==='vcc'?C['3V3']:k==='gnd'?C.GND:C.ser);
+   d.note(L[k].x-160,y,`Pi Zero ${pin}番 ${n}`)});
+ d.note(560,L.rst.y+30,'液晶は Pi Zero が表示（シェーダー名・GOOD）');
+ const J1=d.block(30,30,170,'DATA 1（フェーダー箱）',[],[['t','先端'],['r','中間'],['s','根元']],34);
+ const J3=d.block(30,420,170,'DATA 3（キー箱）',[],[['t','先端'],['r','中間'],['s','根元']],34);
+ d.inline(J1.t,R.rx1,'res','1kΩ',C.ser,290);d.inline(J3.t,R.rx2,'res','1kΩ',C.ser,290);
+ d.flag(J1.s,'GND');d.flag(J3.s,'GND');
+ for(const J of[J1,J3]){d.inline({x:J.r.x+80,y:J.r.y},J.r,'fuse','MF-RX020',C['5V'],J.r.x+40);d.flag({x:J.r.x+80,y:J.r.y},'5V',10)}
+ const U=d.block(330,R.v.y+330,150,'USB-C 電源',[],[['v','5V'],['g','GND']],34);
+ const T=d.block(560,R.v.y+330,140,'POWER トグル',[['i','入']],[['o','出']],34);
+ d.wire(U.v,T.i,C['5V']);d.flag(T.o,'5V');d.flag(U.g,'GND',22);
+ d.note(30,R.v.y+350,'5V の札はすべて「トグルの出」側。');d.note(30,R.v.y+370,'トグルを切ると全部止まる。');
+ d.note(30,R.v.y+390,'電源は 5V 2A 以上の USB 充電器。');
+}
+</script>
+</body>
+</html>

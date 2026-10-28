@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300mm" height="450mm" viewBox="0 0 300 450">
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,6.000 H123.500 A2.5,2.5 0 0 1 126.000,8.500 V143.500 A2.5,2.5 0 0 1 123.500,146.000 H8.500 A2.5,2.5 0 0 1 6.000,143.500 V8.500 A2.5,2.5 0 0 1 8.500,6.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="66.000" cy="54.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="111.000" cy="54.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="81.000" cy="54.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="96.000" cy="54.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="108.000" cy="124.000" r="3.650"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="141.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="11.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="141.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="11.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="21.000" cy="51.000" r="3.250"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="41.095" cy="111.000" r="4.700"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="44.450,16.750 107.550,16.750 107.550,35.250 44.450,35.250"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="48.500" cy="66.000" r="3.650"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="79.025,96.025 92.975,96.025 92.975,109.975 79.025,109.975"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,152.000 H123.500 A2.5,2.5 0 0 1 126.000,154.500 V289.500 A2.5,2.5 0 0 1 123.500,292.000 H8.500 A2.5,2.5 0 0 1 6.000,289.500 V154.500 A2.5,2.5 0 0 1 8.500,152.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="287.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="157.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="287.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="157.000" r="1.700"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,298.000 H113.500 A2.5,2.5 0 0 1 116.000,300.500 V400.500 A2.5,2.5 0 0 1 113.500,403.000 H8.500 A2.5,2.5 0 0 1 6.000,400.500 V300.500 A2.5,2.5 0 0 1 8.500,298.000 Z"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="42.500,338.000 42.500,388.000 39.500,388.000 39.500,338.000"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="41.000" cy="335.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="41.000" cy="391.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="21.000" cy="318.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="303.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="111.000" cy="303.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="111.000" cy="398.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="398.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="41.000" cy="318.000" r="3.650"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="61.000" cy="318.000" r="3.650"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="62.500,338.000 62.500,388.000 59.500,388.000 59.500,338.000"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="61.000" cy="335.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="61.000" cy="391.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="81.000" cy="318.000" r="3.650"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="82.500,338.000 82.500,388.000 79.500,388.000 79.500,338.000"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="81.000" cy="335.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="81.000" cy="391.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="101.000" cy="318.000" r="3.650"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="102.500,338.000 102.500,388.000 99.500,388.000 99.500,338.000"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="101.000" cy="335.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="101.000" cy="391.000" r="1.100"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="22.500,338.000 22.500,388.000 19.500,388.000 19.500,338.000"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="21.000" cy="335.000" r="1.100"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="21.000" cy="391.000" r="1.100"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M134.500,6.000 H239.500 A2.5,2.5 0 0 1 242.000,8.500 V108.500 A2.5,2.5 0 0 1 239.500,111.000 H134.500 A2.5,2.5 0 0 1 132.000,108.500 V8.500 A2.5,2.5 0 0 1 134.500,6.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="11.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="237.000" cy="11.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="237.000" cy="106.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="106.000" r="1.700"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M134.500,117.000 H244.500 A2.5,2.5 0 0 1 247.000,119.500 V194.500 A2.5,2.5 0 0 1 244.500,197.000 H134.500 A2.5,2.5 0 0 1 132.000,194.500 V119.500 A2.5,2.5 0 0 1 134.500,117.000 Z"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="220.025,170.025 233.975,170.025 233.975,183.975 220.025,183.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="200.025,170.025 213.975,170.025 213.975,183.975 200.025,183.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="180.025,170.025 193.975,170.025 193.975,183.975 180.025,183.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="160.025,170.025 173.975,170.025 173.975,183.975 160.025,183.975"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="147.000" cy="177.000" r="3.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="242.000" cy="192.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="192.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="242.000" cy="122.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="122.000" r="1.700"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="160.025,150.025 173.975,150.025 173.975,163.975 160.025,163.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="180.025,150.025 193.975,150.025 193.975,163.975 180.025,163.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="200.025,150.025 213.975,150.025 213.975,163.975 200.025,163.975"/>
+<polygon stroke="#FF0000" stroke-width="0.01" fill="none" points="220.025,150.025 233.975,150.025 233.975,163.975 220.025,163.975"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="167.000" cy="137.000" r="6.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="187.000" cy="137.000" r="6.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="227.000" cy="137.000" r="6.150"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="207.000" cy="137.000" r="6.150"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M134.500,203.000 H244.500 A2.5,2.5 0 0 1 247.000,205.500 V280.500 A2.5,2.5 0 0 1 244.500,283.000 H134.500 A2.5,2.5 0 0 1 132.000,280.500 V205.500 A2.5,2.5 0 0 1 134.500,203.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="242.000" cy="278.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="278.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="242.000" cy="208.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="137.000" cy="208.000" r="1.700"/>
+</svg>

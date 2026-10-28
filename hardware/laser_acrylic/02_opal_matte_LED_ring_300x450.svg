@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300mm" height="450mm" viewBox="0 0 300 450">
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,6.000 H123.500 A2.5,2.5 0 0 1 126.000,8.500 V143.500 A2.5,2.5 0 0 1 123.500,146.000 H8.500 A2.5,2.5 0 0 1 6.000,143.500 V8.500 A2.5,2.5 0 0 1 8.500,6.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="141.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="11.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="141.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="121.000" cy="11.000" r="1.700"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M18.500,16.000 H113.500 A2.5,2.5 0 0 1 116.000,18.500 V133.500 A2.5,2.5 0 0 1 113.500,136.000 H18.500 A2.5,2.5 0 0 1 16.000,133.500 V18.500 A2.5,2.5 0 0 1 18.500,16.000 Z"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,152.000 H113.500 A2.5,2.5 0 0 1 116.000,154.500 V254.500 A2.5,2.5 0 0 1 113.500,257.000 H8.500 A2.5,2.5 0 0 1 6.000,254.500 V154.500 A2.5,2.5 0 0 1 8.500,152.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="157.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="111.000" cy="157.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="111.000" cy="252.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="252.000" r="1.700"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M18.500,162.000 H103.500 A2.5,2.5 0 0 1 106.000,164.500 V244.500 A2.5,2.5 0 0 1 103.500,247.000 H18.500 A2.5,2.5 0 0 1 16.000,244.500 V164.500 A2.5,2.5 0 0 1 18.500,162.000 Z"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M8.500,263.000 H118.500 A2.5,2.5 0 0 1 121.000,265.500 V340.500 A2.5,2.5 0 0 1 118.500,343.000 H8.500 A2.5,2.5 0 0 1 6.000,340.500 V265.500 A2.5,2.5 0 0 1 8.500,263.000 Z"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="116.000" cy="338.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="338.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="116.000" cy="268.000" r="1.700"/>
+<circle stroke="#FF0000" stroke-width="0.01" fill="none" cx="11.000" cy="268.000" r="1.700"/>
+<path stroke="#FF0000" stroke-width="0.01" fill="none" d="M18.500,273.000 H108.500 A2.5,2.5 0 0 1 111.000,275.500 V330.500 A2.5,2.5 0 0 1 108.500,333.000 H18.500 A2.5,2.5 0 0 1 16.000,330.500 V275.500 A2.5,2.5 0 0 1 18.500,273.000 Z"/>
+</svg>
