@@ -1,34 +1,15 @@
-# onmk.videosynth.01（Vs-01）
+# onmk.videosynth.01
 
-GEISAI 2026（11月1日〜3日）に出す、手で触れるビデオシンセです。
+制作中のビデオシンセ。
 
-Raspberry Pi Zero が GLSL のシェーダーで映像を作り、HDMI で画面に出します。
-3つの箱（パネル）にあるノブ・フェーダー・キーで、映像が変わります。
-
-いちばん大事なつまみは **GOOD KNOB** です。どこまでも回せるつまみで、回すほど映像が少しずつ良くなっていきます。それが終わりなく続きます。
-
-## フォルダの中身
-
-| フォルダ | 入っているもの |
+| フォルダ | 内容 |
 |---|---|
-| `emulator/` | ブラウザで動く試作環境。3つの箱を画面上で触れて、シェーダーを書き換え、つまみに値を割り当てられる。`emulator/index.html` を Chrome で開くだけで使える（サーバーはいらない）。 |
-| `shaders/` | シェーダー本体（`index.js`）と、どのつまみで何が動くかの割り当て |
-| `docs/` | 配線図（`wiring.html`）と、パネルの部品の位置（`panel_controls.json`） |
-| `hardware/layout/` | パネルの配置 v08d（配置ツールの正本から書き出したもの） |
-| `hardware/panel_topplates/` | 天板 3mm の図面（DXF・SVG・STL・STEP） |
-| `hardware/laser_acrylic/` | アクリルのレーザーカット用の図面（白マットの天板と底板、乳半の LED リング、試し板） |
-| `hardware/enclosure_3dp/` | 3D プリントの箱の STL と、それを作るスクリプト |
-| `hardware/knobs_keycaps/` | ノブとキーキャップを作るスクリプト（STL は大きいので入れていない。スクリプトから作り直す） |
-| `AGENTS.md` | Codex など、コードを書く AI 向けの指示書（シェーダーの決まり、割り当ての決まり、やること） |
-
-## エミュレーターの使い方
-
-1. `emulator/index.html` を Chrome で開く。
-2. 左に映像とシェーダーのエディタ、右に3つの箱が並んだ台が出る。
-3. 台の上のノブやフェーダーをドラッグ、キーをクリックすると映像が変わる。キーボードでも操作できる（左下の「keys & mouse」に一覧）。
-4. エディタでシェーダーを書き換えると、すぐ映像に反映される。⌘S で `shaders/index.js` に保存できる。
-5. エディタの **map** タブで、シェーダーの値をつまみに割り当てられる。
-
-## 注意
-
-`hardware/` の中のスクリプトは参考用のコピーです。作業用のフォルダで動かしていたので、読み込むファイルの場所はそちらを指しています。
+| `emulator/` | ブラウザで動くエミュレーター、シェーダーエディタ、つまみの割り当て（`index.html` を Chrome で開く） |
+| `shaders/` | シェーダーと割り当て（`index.js`） |
+| `docs/` | 配線図（`wiring.html`）、パネル部品の位置（`panel_controls.json`） |
+| `hardware/layout/` | パネルの配置 |
+| `hardware/panel_topplates/` | 天板の図面（DXF / SVG / STL / STEP） |
+| `hardware/laser_acrylic/` | アクリルのレーザーカット用データ |
+| `hardware/enclosure_3dp/` | 3D プリントの箱（STL、生成スクリプト） |
+| `hardware/knobs_keycaps/` | ノブとキーキャップの生成スクリプト |
+| `AGENTS.md` | コーディングエージェント向けの指示書 |

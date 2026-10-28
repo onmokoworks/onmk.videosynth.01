@@ -1,6 +1,6 @@
 # onmk.videosynth.01 — instructions for coding agents
 
-A small hardware video synthesizer for an art exhibition (GEISAI, 2026-11-01 to 11-03).
+A small hardware video synthesizer (work in progress).
 A Raspberry Pi Zero renders fragment shaders full-screen to HDMI; three panels of knobs,
 faders and keys change the image live. This repo holds the shaders, a browser emulator
 for writing them without the hardware, and (later) the player that runs on the Pi.
