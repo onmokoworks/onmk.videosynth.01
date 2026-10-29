@@ -15,6 +15,9 @@ window.SHADERS = [
 // ・回る単位の正方形は、模様のマスから斜めに 1/4 マスずらしてある（正方形の中心はマスの中心と角の間）。
 //   ときどきランダムに1つの正方形の中身が、その場で（浮き上がらずに）画面の面内で 90 度回る。正方形の枠は動かない。
 //   回った分はそのまま残るので、時間とともに正方形ごとに向きがばらけていく。
+// キー（押している間だけ効く。離すと0.2秒で戻る）：
+//   K0 玉が大きくなる / K1 線が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
+//   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_every;  // @param 5.0 120.0 30.0 1つの正方形が回る平均の間隔（秒）。小さいほど、ばらけるのが早い
 uniform float p_flip;   // @param 0.6 3.0 1.4 1回（90 度）回るのにかける時間（秒）
@@ -27,7 +30,9 @@ mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
 // 編み物の模様そのもの（回す前の世界）。p はマス単位の座標、px は1ピクセルの大きさ
 vec3 ground(vec2 p,float px){
   vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941);
-  float w=0.08,rb=0.055;
+  vec3 ca=mix(colA,colB,u_key[2]),cb=mix(colB,colA,u_key[2]);colA=ca;colB=cb;   // K2 2色を入れ替える
+  bg=mix(bg,vec3(0.06,0.07,0.12),u_key[3]);                                       // K3 夜
+  float w=0.08+0.05*u_key[1],rb=0.055+0.06*u_key[0];   // K1 線を太く、K0 玉を大きく
   vec2 cell=floor(p),q=p-cell,qm=vec2(1.0-q.x,q.y);
   float dA=min(abs(length(q-vec2(1.0))-0.5),abs(length(q)-0.5));     // 右上↔左下の弧
   float dB=min(abs(length(qm-vec2(1.0))-0.5),abs(length(qm)-0.5));   // 左上↔右下の弧
@@ -41,7 +46,7 @@ vec3 ground(vec2 p,float px){
   float s=fract(u_time*p_roll),t1=3.1415927+s*1.5707963,t2=1.5707963-s*1.5707963;
   vec2 B1=vec2(1.0)+0.5*vec2(cos(t1),sin(t1)),B2=0.5*vec2(cos(t2),sin(t2));
   vec2 qq=topA?q:qm;
-  float off=2.5*px*0.7071;
+  float off=(2.5+9.0*u_key[5])*px*0.7071;                            // K5 影を遠くに
   vec2 qs=qq+(topA?vec2(-off,off):vec2(off,off));
   if(min(length(qs-B1),length(qs-B2))<rb) c=vec3(0.78);
   if(min(length(qq-B1),length(qq-B2))<rb) c=vec3(0.973,0.973,1.0);
@@ -57,7 +62,7 @@ vec2 schedule(vec2 sq){
   return f<1.0?vec2(f,n):vec2(1.0,n+1.0);
 }
 void main(){
-  float cells=5.0;                                   // 画面の縦に並ぶマスの数
+  float cells=5.0-2.0*u_key[4];                      // 画面の縦に並ぶマスの数（K4 で寄る）
   float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
   vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
   // 回る正方形は 1/4 マスずらした格子：正方形 sq は [sq+0.25, sq+1.25]、中心は sq+0.75
@@ -65,6 +70,8 @@ void main(){
   vec2 k=schedule(sq);
   float ang=(k.x<1.0?k.y+smoother(k.x):k.y)*1.5707963;      // 着地済みの向き（回っている間はそこから 90 度へ）
   vec3 c=ground(ctr+rot(-ang)*(p-ctr),px);                  // 正方形の枠の中で、模様だけを回す
+  c=mix(c,vec3(dot(c,vec3(0.299,0.587,0.114))),u_key[6]);  // K6 白黒
+  c=mix(c,vec3(1.0),0.7*u_key[7]);                          // K7 白く光る
   gl_FragColor=vec4(c,1.0);
 }`},
 
