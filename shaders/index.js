@@ -8,48 +8,48 @@
 window.SHADERS = [
 
 { name: 'TRUCHET', src: `
-// メインの模様（つまみの割り当てはあとで）。背景 #fffaf0 に正方形のマスを敷き詰め、各マスに 1/4 円の弧を2組重ねる。
-// 「右上↔左下」の弧（#7fffd4 の層）と「左上↔右下」の弧（#00bfff の層）。どちらが上かはマスごとに互い違い（市松）で、
-// 2色の線が編み物のように上下に交差する。白っぽい玉 #f8f8ff が線の上を転がり、右下に薄い影が落ちる。
+// メインの模様。背景 #fffaf0 に正方形のマスを敷き詰め、全部のマスを同じ向きの 1/4 円（左下の角と右上の角が中心）で埋める。
+// 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
+// 白っぽい玉 #f8f8ff が帯の上を転がり、右下に薄い影が落ちる。
 // ・画面全体がずっと左上から右下へ流れる。
-// ・回る単位の正方形は、模様のマスから斜めに 1/4 マスずらしてある（正方形の中心はマスの中心と角の間）。
-//   ときどきランダムに1つの正方形の中身が、その場で（浮き上がらずに）画面の面内で 90 度回る。正方形の枠は動かない。
-//   回った分はそのまま残るので、時間とともに正方形ごとに向きがばらけていく。
+// ・回る単位の正方形は、模様のマスから斜めに 1/4 マスずらしてある（帯が正方形の枠を真ん中ではない位置で横切る）。
+//   ときどきランダムに1つの正方形の中身が、その場で画面の面内で 90 度回る。正方形の枠は動かない。
+//   回った分はそのまま残るので、時間とともに斜めの波がちぎれて、トルシェ模様のようにばらけていく。
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
-//   K0 玉が大きくなる / K1 線が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
+//   K0 玉が大きくなる / K1 帯が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
 //   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_every;  // @param 5.0 120.0 30.0 1つの正方形が回る平均の間隔（秒）。小さいほど、ばらけるのが早い
 uniform float p_flip;   // @param 0.6 3.0 1.4 1回（90 度）回るのにかける時間（秒）
 uniform float p_roll;   // @param 0.0 2.0 0.5 玉の速さ（1秒に進む弧の数）
+uniform float p_width;  // @param 0.08 0.24 0.17 帯の太さ（半分の幅、マス単位）
 
 float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
 float smoother(float f){return f*f*f*(f*(f*6.0-15.0)+10.0);}
 mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
 
-// 編み物の模様そのもの（回す前の世界）。p はマス単位の座標、px は1ピクセルの大きさ
+// 模様そのもの（回す前の世界）。p はマス単位の座標、px は1ピクセルの大きさ
 vec3 ground(vec2 p,float px){
   vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941);
   vec3 ca=mix(colA,colB,u_key[2]),cb=mix(colB,colA,u_key[2]);colA=ca;colB=cb;   // K2 2色を入れ替える
   bg=mix(bg,vec3(0.06,0.07,0.12),u_key[3]);                                       // K3 夜
-  float w=0.08+0.05*u_key[1],rb=0.055+0.06*u_key[0];   // K1 線を太く、K0 玉を大きく
-  vec2 cell=floor(p),q=p-cell,qm=vec2(1.0-q.x,q.y);
-  float dA=min(abs(length(q-vec2(1.0))-0.5),abs(length(q)-0.5));     // 右上↔左下の弧
-  float dB=min(abs(length(qm-vec2(1.0))-0.5),abs(length(qm)-0.5));   // 左上↔右下の弧
-  bool topA=mod(cell.x+cell.y,2.0)<0.5;                               // このマスで上になる層
-  float dTop=topA?dA:dB,dBot=topA?dB:dA;
+  float w=p_width+0.05*u_key[1],rb=0.07+0.06*u_key[0];                            // K1 帯を太く、K0 玉を大きく
+  vec2 cell=floor(p),q=p-cell;
+  float dBL=abs(length(q)-0.5);              // 左下の角が中心の弧（左の辺 ↔ 下の辺）
+  float dTR=abs(length(q-vec2(1.0))-0.5);    // 右上の角が中心の弧（上の辺 ↔ 右の辺）
+  // 斜めの帯の番号：左下の弧は cell.x+cell.y、右上の弧はその次の帯。偶数と奇数で色を分ける
+  float band=cell.x+cell.y;
+  vec3 cBL=mod(band,2.0)<0.5?colA:colB, cTR=mod(band,2.0)<0.5?colB:colA;
   vec3 c=bg;
-  c=mix(c,topA?colB:colA,1.0-smoothstep(w-px,w+px,dBot));             // 下の層
-  c=mix(c,bg,1.0-smoothstep(w+1.5*px,w+2.5*px,dTop));                 // 上の層のまわりのすき間（重なりが読めるように）
-  c=mix(c,topA?colA:colB,1.0-smoothstep(w-px,w+px,dTop));             // 上の層
-  // 玉：上の層の2本の弧の上を転がる（影は画面の右下 45 度に 2.5 ピクセル）
-  float s=fract(u_time*p_roll),t1=3.1415927+s*1.5707963,t2=1.5707963-s*1.5707963;
-  vec2 B1=vec2(1.0)+0.5*vec2(cos(t1),sin(t1)),B2=0.5*vec2(cos(t2),sin(t2));
-  vec2 qq=topA?q:qm;
+  c=mix(c,cBL,1.0-smoothstep(w-px,w+px,dBL));
+  c=mix(c,cTR,1.0-smoothstep(w-px,w+px,dTR));
+  // 玉：2本の弧の上を、帯の流れる向き（左上→右下）に転がる。影は画面の右下 45 度
+  float s=fract(u_time*p_roll),t1=3.1415927-s*1.5707963,t2=1.5707963*(1.0-s);
+  vec2 B1=vec2(1.0)+0.5*vec2(cos(t1+1.5707963),sin(t1+1.5707963)),B2=0.5*vec2(cos(t2),sin(t2));
   float off=(2.5+9.0*u_key[5])*px*0.7071;                            // K5 影を遠くに
-  vec2 qs=qq+(topA?vec2(-off,off):vec2(off,off));
-  if(min(length(qs-B1),length(qs-B2))<rb) c=vec3(0.78);
-  if(min(length(qq-B1),length(qq-B2))<rb) c=vec3(0.973,0.973,1.0);
+  vec2 qs=q+vec2(-off,off);
+  if(min(length(qs-B1),length(qs-B2))<rb) c=mix(c,vec3(0.0),0.22);
+  if(min(length(q-B1),length(q-B2))<rb) c=vec3(0.973,0.973,1.0);
   return c;
 }
 // 回る正方形の予定表（正方形ごとにランダムな間隔とずれ）。x = いまの回転の進み 0..1（回っていなければ 1）、
