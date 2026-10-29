@@ -22,6 +22,9 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:12px/1
 #liveReload{color:var(--accent);background:transparent;border:0;padding:2px 4px;font-size:11px}
 #liveReload.paused{color:var(--dim)}#liveReload.failed{color:var(--err)}
 #liveReload.flash{animation:liveFlash .6s ease-out}@keyframes liveFlash{from{background:var(--accent);color:var(--bg)}to{background:transparent}}
+#usbSerial{color:var(--dim);background:transparent;border:0;padding:2px 4px;font-size:11px}
+#usbSerial.connected{color:var(--accent)}#usbSerial.failed{color:var(--err)}
+#usbSerial.flash{animation:liveFlash .25s ease-out}
 #side h1{font-size:12px;font-weight:600;margin:0;letter-spacing:.08em;flex:1}
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
 .bar label{color:var(--dim)}
@@ -92,7 +95,7 @@ details.help{margin:8px 12px 10px;color:var(--dim)}details.help summary{cursor:p
 <body>
 <div id="app">
 <aside id="side">
-  <header><h1>ONMK VIDEOSYNTH 01</h1><button id="liveReload" title="Live reload: click to pause">live ●</button><button id="fsBtn" title="F">fullscreen</button></header>
+  <header><h1>ONMK VIDEOSYNTH 01</h1><button id="liveReload" title="Live reload: click to pause">live ●</button><button id="usbSerial" title="Connect a control box over USB">USB ○</button><button id="fsBtn" title="F">fullscreen</button></header>
   <div class="bar">
     <label>shader <select id="shaderSel"></select></label>
     <label>render <select id="resSel"><option value="320">320×240 (4:3)</option><option value="640">640×480 (4:3)</option><option value="426">426×240 (16:9)</option><option value="854">854×480 (16:9)</option></select></label>
@@ -144,7 +147,17 @@ const keyState=[...Array(8)].map(()=>({held:false,rel:-1e9}));
 const noiseState={held:false,rel:-1e9};
 let bootAt=-1e9,taps=[],beatPeriod=.5,beatOrigin=0,lastTouched='—',simTime=0;
 try{Object.assign(S,JSON.parse(localStorage.getItem('onmk-vs-emu')||'{}'))}catch(e){}
-let saveT=0;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem('onmk-vs-emu',JSON.stringify(S))}catch(e){}},200)}
+let saveT=0,lastSave=-Infinity,serialApplying=false;
+function persistState(){
+  const remaining=1000-(performance.now()-lastSave);
+  if(remaining>0){saveT=setTimeout(persistState,Math.ceil(remaining));return}
+  saveT=0;lastSave=performance.now();try{localStorage.setItem('onmk-vs-emu',JSON.stringify(S))}catch(e){}
+}
+function save(){
+  // Serial setters share one trailing write; continuous input still saves once per second.
+  if(serialApplying){if(!saveT)saveT=setTimeout(persistState,Math.max(200,1000-(performance.now()-lastSave)));return}
+  clearTimeout(saveT);saveT=setTimeout(persistState,Math.max(200,1000-(performance.now()-lastSave)));
+}
 const now=()=>performance.now()/1000;
 const env=k=>k.held?1:Math.max(0,1-(now()-k.rel)/.2);
 // Working shader list = shaders/index.js plus edits made in the editor (kept in localStorage until saved).
@@ -421,6 +434,220 @@ function tap(){
   const t=now();taps=taps.filter(x=>t-x<2.5);taps.push(t);
   if(taps.length>=2){const d=[];for(let i=1;i<taps.length;i++)d.push(taps[i]-taps[i-1]);beatPeriod=d.reduce((a,b)=>a+b)/d.length}
   beatOrigin=t;taps=taps.slice(-5);lastTouched=`TAP ${(60/beatPeriod).toFixed(0)} BPM`;
+}
+
+// ---------- USB control boxes (Web Serial, also available on file:// in Chrome) ----------
+const usbIndicator=document.getElementById('usbSerial');
+let serialSession=null,serialBusy=false,serialError='',serialMalformed=0,serialPrevious={};
+function renderSerial(flash=false){
+  usbIndicator.textContent=serialSession?'USB ●':serialError?'USB ✕':'USB ○';
+  usbIndicator.className=serialSession?'connected':serialError?'failed':'';
+  usbIndicator.disabled=serialBusy;
+  usbIndicator.title=(!navigator.serial?'Web Serial needs Chrome or Edge.':serialError||
+    (serialSession?'Click to disconnect USB':'Click to connect a USB control box'))+
+    ` · ${serialMalformed} malformed lines ignored`;
+  usbIndicator.setAttribute('aria-pressed',String(!!serialSession));
+  if(flash&&serialSession){void usbIndicator.offsetWidth;usbIndicator.classList.add('flash')}
+}
+function malformedSerial(){serialMalformed++;renderSerial();return false}
+function parseSerialLine(line){
+  line=line.replace(/\r$/,'');
+  const p=line.split(','),tag=p[0];
+  if(!['K','F','V'].includes(tag))return false; // MicroPython banners / REPL text.
+  const bits=(v,n)=>typeof v==='string'&&v.length===n&&/^[01]+$/.test(v);
+  const uint=v=>/^\d+$/.test(v);
+  const unit=v=>/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(v)&&Number.isFinite(+v)&&+v>=0&&+v<=1;
+  let knobs=null,faders=null,keys=null,tapBits=null,enc=null,reset=null;
+  if(tag==='K'){
+    if(p.length!==2||!bits(p[1],12))return malformedSerial();
+    tapBits=p[1].slice(0,4);keys=p[1].slice(4);
+  }else if(tag==='F'){
+    if(p.length!==10||!p.slice(1).every(v=>uint(v)&&+v<=4095))return malformedSerial();
+    // Wire order from docs/wiring.html and firmware/common.py: k2..k5, then f0..f4.
+    knobs=[null,null,...p.slice(1,5).map(v=>+v/4095)];faders=p.slice(5).map(v=>+v/4095);
+  }else{
+    // Match read_uart(): also accept legacy V without SW2; SW2 does not drive POWER.
+    if(![16,17].includes(p.length)||!p.slice(1,12).every(unit)||!bits(p[12],8)||!bits(p[13],4)||
+      !/^[+-]?\d+$/.test(p[14])||!Number.isSafeInteger(+p[14])||!bits(p[15],1)||
+      (p.length===17&&!bits(p[16],1)))return malformedSerial();
+    knobs=p.slice(1,7).map(Number);faders=p.slice(7,12).map(Number);
+    keys=p[12];tapBits=p[13];enc=+p[14];reset=p[15]==='1';
+  }
+  let changed=false;
+  const apply=(id,value,fn)=>{
+    if(serialPrevious[id]===value)return;
+    serialPrevious[id]=value;fn(value);changed=true;
+  };
+  serialApplying=true;
+  try{
+    knobs?.forEach((v,i)=>{if(v!==null)apply('knob'+i,v,x=>ui.knobs[i]?.set(x))});
+    faders?.forEach((v,i)=>apply('fader'+i,v,x=>ui.faders[i]?.set(x)));
+    if(keys!==null)[...keys].forEach((v,i)=>apply('key'+i,v,x=>ui.keys[i]?.press(x==='1')));
+    if(tapBits!==null)[...tapBits].forEach((v,i)=>apply('tap'+i,v,x=>ui.taps[i]?.press(x==='1')));
+    if(enc!==null){
+      const firstEnc=serialPrevious.enc===undefined,previousEnc=serialPrevious.enc??0,resetEdge=reset&&serialPrevious.reset!==true;
+      // Encoder deltas preserve newer mouse turns. RESET establishes the Pi's enc0 baseline.
+      apply('reset',reset,x=>ui.noise?.press(x));
+      if(resetEdge){S.good=0;changed=true}
+      else if(firstEnc){S.good=enc/24;changed=true}
+      else if(enc!==previousEnc){S.good+=(enc-previousEnc)/24;changed=true}
+      serialPrevious.enc=enc;
+      if(changed){ui.enc?.show();save()}
+    }
+  }finally{serialApplying=false}
+  renderSerial(changed);return true;
+}
+function serialLineBuffer(){
+  let pending='',dropping=false;
+  return chunk=>{for(const c of chunk){
+    if(c==='\n'){if(!dropping)parseSerialLine(pending);pending='';dropping=false}
+    else if(!dropping){
+      if(pending.length>=512){pending='';dropping=true;malformedSerial()}
+      else pending+=c;
+    }
+  }};
+}
+async function readSerial(session){
+  let failure='';
+  try{
+    const decoder=new TextDecoderStream();
+    // Catch immediately: unplugging rejects pipeTo before the read loop finishes.
+    session.pipeDone=session.port.readable.pipeTo(decoder.writable).catch(e=>{if(!session.stopping)failure=String(e.message||e)});
+    session.reader=decoder.readable.getReader();const feed=serialLineBuffer();
+    while(!session.stopping){const{value,done}=await session.reader.read();if(done)break;feed(value)}
+    if(!session.stopping&&!failure)failure='USB disconnected';
+  }catch(e){if(!session.stopping)failure=String(e.message||e)}
+  finally{
+    session.reader?.releaseLock();await session.pipeDone;
+    try{await session.port.close()}catch(e){if(!session.stopping&&!failure)failure=String(e.message||e)}
+    // Release hardware-held buttons, without clearing mouse-held buttons on other controls.
+    for(let i=0;i<8;i++)if(serialPrevious['key'+i]==='1')ui.keys[i]?.press(false);
+    for(let i=0;i<4;i++)if(serialPrevious['tap'+i]==='1')ui.taps[i]?.press(false);
+    if(serialPrevious.reset)ui.noise?.press(false);
+    if(serialSession===session){serialSession=null;serialPrevious={};serialError=failure;renderSerial()}
+  }
+}
+async function connectSerial(port){
+  await port.open({baudRate:115200});serialPrevious={};serialError='';
+  const session={port,reader:null,pipeDone:null,stopping:false,done:null};
+  serialSession=session;renderSerial();session.done=readSerial(session);
+}
+async function disconnectSerial(){
+  const session=serialSession;if(!session)return;
+  session.stopping=true;
+  try{await session.reader?.cancel()}catch(e){}await session.done;
+}
+usbIndicator.onclick=async()=>{
+  if(!navigator.serial||serialBusy)return;
+  serialBusy=true;renderSerial();
+  try{
+    if(serialSession)await disconnectSerial();
+    else await connectSerial(await navigator.serial.requestPort());
+  }catch(e){if(e.name!=='NotFoundError')serialError=String(e.message||e)}
+  finally{serialBusy=false;renderSerial()}
+};
+async function reconnectSerial(){
+  if(!navigator.serial)return;
+  serialBusy=true;renderSerial();
+  try{const ports=await navigator.serial.getPorts();if(ports.length)await connectSerial(ports[0])}
+  catch(e){serialError=String(e.message||e)}finally{serialBusy=false;renderSerial()}
+}
+renderSerial();
+
+// Opt-in host check: parser, UI setters and actual stream lifecycle, with no USB hardware.
+async function serialSelftest(){
+  let checks=0;
+  const check=(ok,message)=>{if(!ok)throw new Error(message);checks++};
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const snapshot=()=>JSON.stringify([S.knob,S.fader,S.good,S.power,keyState,noiseState,taps,serialPrevious]);
+  const v=(enc=48,reset=0,sw2=1)=>'V,0,.2,.4,.6,.8,1,1,.75,.5,.25,0,10101010,0100,'+enc+','+reset+(sw2===null?'':','+sw2);
+  const keyBody=i=>ctlEls['key:'+i].g.querySelectorAll(':scope > g')[0];
+  const originalSerial=Object.getOwnPropertyDescriptor(navigator,'serial');
+  let fakePort=null;
+  try{
+    serialPrevious={};
+    check(parseSerialLine('K,100010000001\r'),'K CRLF accepted');
+    check(keyState[0].held&&keyState[7].held&&!keyState[1].held,'K keys follow panel order');
+    check(!!keyBody(0).getAttribute('transform'),'K press visible on desk');
+    const origin=beatOrigin,count=taps.length;
+    parseSerialLine('K,100010000001');
+    check(taps.length===count&&beatOrigin===origin,'K keepalive does not retrigger TAP');
+    ui.keys[0].press(false);parseSerialLine('K,100010000001');
+    check(!keyState[0].held,'mouse release survives unchanged K');
+    parseSerialLine('K,000000000000');
+    check(!keyState[7].held&&env(keyState[7])>0,'K release starts envelope');
+    check(!keyBody(7).getAttribute('transform'),'K release visible on desk');
+    parseSerialLine('K,000010000000');check(keyState[0].held,'hardware change wins after mouse');
+    const ft='F,0,4095,819,3276,4095,0,819,1638,2457';
+    check(parseSerialLine(ft),'F accepted');
+    check(JSON.stringify(S.knob.slice(2))===JSON.stringify([0,1,.2,.8]),'F wire knob order');
+    check(JSON.stringify(S.fader)===JSON.stringify([1,0,.2,.4,.6]),'F wire fader order');
+    check(ctlEls['knob:2'].g.querySelector('g').getAttribute('transform')==='rotate(-135)','F knob visual');
+    ui.faders[0].set(.3);parseSerialLine(ft);check(S.fader[0]===.3,'mouse fader survives F keepalive');
+    parseSerialLine(ft.replace('3276,4095','3276,0'));check(S.fader[0]===0,'changed F wins');
+    check(parseSerialLine(v()),'v09 V accepted');
+    check(JSON.stringify(S.knob)===JSON.stringify([0,.2,.4,.6,.8,1])&&
+      JSON.stringify(S.fader)===JSON.stringify([1,.75,.5,.25,0]),'V analog order');
+    check(keyState.map(k=>+k.held).join('')==='10101010','V keys');
+    check(S.good===2,'V detents become turns');
+    const power=S.power;parseSerialLine(v(48,0,0));check(S.power===power,'SW2 ignored like player');
+    ui.enc.step(24);parseSerialLine(v());check(S.good===3,'mouse encoder survives keepalive');
+    parseSerialLine(v(72));check(S.good===4,'hardware encoder delta after mouse');
+    parseSerialLine(v(72,1));check(S.good===0&&noiseState.held,'V RESET establishes baseline');
+    parseSerialLine(v(96,1));check(S.good===1,'encoder while RESET held matches player');
+    parseSerialLine(v(96,0));check(!noiseState.held&&env(noiseState)>0,'V RESET release envelope');
+    parseSerialLine(v(48,0,null));check(S.good===-1,'legacy V and signed encoder delta');
+    parseSerialLine(v(-24));check(S.good===-4,'negative detents accepted');
+    ui.noise.press(true);ui.noise.press(false);parseSerialLine(v(0));check(S.good===1,'mouse RESET then hardware delta');
+    const unchanged=snapshot(),badBefore=serialMalformed;
+    const malformed=['K,0101','K,00000000000x','K,000000000000,','F,0,0,0,0,0,0,0,0',
+      'F,0,0,0,0,0,0,0,0,4096','F,0,0,0,0,0,0,0,0,-1','F,0,0,0,0,0,0,0,0,1.5',
+      v().replace('V,0,','V,NaN,'),v().replace('V,0,','V,Infinity,'),v().replace('V,0,','V,1.01,'),
+      v().replace('10101010','1010101x'),v().replace('0100,48','010,48'),v(1.5),v(48,2),v(48,0,2),v()+',0'];
+    for(const line of malformed){check(!parseSerialLine(line),'malformed rejected: '+line);check(snapshot()===unchanged,'malformed has no partial effects')}
+    check(serialMalformed===badBefore+malformed.length,'malformed count exact');
+    for(const line of ['','>>> ','MicroPython v1.26','print("K,111111111111")'])check(!parseSerialLine(line),'REPL ignored');
+    check(serialMalformed===badBefore+malformed.length,'REPL does not count as malformed');
+    const feed=serialLineBuffer();feed('K,0000');feed('00000000\r');feed('\nK,000000000001\n');
+    check(keyState[7].held&&!keyState[0].held,'fragmented CRLF and multiple lines');
+    feed('K,'+'1'.repeat(600));feed('\nK,000000000000\n');
+    check(!keyState[7].held&&serialMalformed===badBefore+malformed.length+1,'oversized line discarded and framing recovers');
+    function port(){
+      let source;const p={opened:0,closed:0,readable:new ReadableStream({start(c){source=c}}),
+        async open(options){check(options.baudRate===115200,'serial baud');p.opened++},async close(){p.closed++},
+        send(s){source.enqueue(new TextEncoder().encode(s))},unplug(){source.close()}};return p;
+    }
+    fakePort=port();
+    Object.defineProperty(navigator,'serial',{configurable:true,value:{getPorts:async()=>[fakePort],requestPort:async()=>fakePort}});
+    await reconnectSerial();check(fakePort.opened===1&&usbIndicator.textContent==='USB ●','granted port reconnects');
+    fakePort.send('K,100010000000\r\n');await wait(0);
+    check(keyState[0].held&&usbIndicator.classList.contains('flash'),'stream parses and flashes change');
+    await usbIndicator.onclick();check(fakePort.closed===1&&!keyState[0].held&&usbIndicator.textContent==='USB ○','click cancels stream, closes and releases');
+    fakePort=port();await usbIndicator.onclick();check(fakePort.opened===1,'click requests and opens port');
+    fakePort.unplug();await serialSession.done;
+    check(fakePort.closed===1&&usbIndicator.textContent==='USB ✕'&&usbIndicator.title.includes('disconnected'),'unplug reports error and closes');
+    fakePort=port();await usbIndicator.onclick();check(usbIndicator.textContent==='USB ●','connect recovers from error');
+    await disconnectSerial();
+    navigator.serial.getPorts=async()=>{throw new Error('test open failure')};await reconnectSerial();
+    check(usbIndicator.textContent==='USB ✕'&&usbIndicator.title.includes('test open failure'),'reconnect rejection handled');
+    Object.defineProperty(navigator,'serial',{configurable:true,value:undefined});renderSerial();
+    check(usbIndicator.title.includes('Chrome or Edge'),'unsupported browser tooltip');
+    // Observe real storage writes during sustained input (not just calls to save()).
+    const originalSet=Storage.prototype.setItem,writes=[];
+    clearTimeout(saveT);saveT=0;lastSave=performance.now();
+    Storage.prototype.setItem=function(k,value){if(k==='onmk-vs-emu')writes.push(performance.now());return originalSet.call(this,k,value)};
+    try{
+      for(let i=0;i<45;i++){parseSerialLine('F,'+i+',0,0,0,0,0,0,0,0');await wait(50)}
+      await wait(1100);
+      check(writes.length>=2&&writes.length<=3,'sustained serial input persists periodically');
+      check(writes.every((t,i)=>i===0||t-writes[i-1]>=1000),'storage writes at most once per second');
+    }finally{Storage.prototype.setItem=originalSet}
+    console.log('SERIALTEST OK ('+checks+' checks)');
+  }catch(e){console.log('SERIALTEST FAIL: '+e.message)}
+  finally{
+    if(serialSession)await disconnectSerial();
+    if(originalSerial)Object.defineProperty(navigator,'serial',originalSerial);else delete navigator.serial;
+  }
 }
 
 // ---------- keyboard ----------
@@ -802,6 +1029,8 @@ function toggleFs(){const w=document.getElementById('screenWrap');document.fulls
 document.getElementById('fsBtn').onclick=toggleFs;
 document.getElementById('resetBtn').onclick=()=>{ui.knobs.forEach(k=>k&&k.set(.5));ui.faders.forEach(f=>f&&f.set(.5));ui.toggle&&ui.toggle.set(true);lastTouched='RESET'};
 if(!gl){errEl.style.display='block';errEl.textContent='WebGL is not available in this browser.'}else requestAnimationFrame(loop);
+if(new URLSearchParams(location.search).get('serialtest')==='1')setTimeout(serialSelftest,0);
+else if(new URLSearchParams(location.search).get('selftest')!=='1')reconnectSerial();
 </script>
 </body>
 </html>

@@ -18,6 +18,8 @@ now), Enter = POWER, F = fullscreen.
 While visible, the emulator reloads `shaders/index.js` from disk every second; edit the file and watch the image update.
 Editor changes are kept with a “file changed” warning; use **revert** to load the disk version.
 Click **live ●** in the left header to pause/resume reload (remembered across sessions).
+Click **USB ○** in Chrome/Edge to connect a real control box at 115200 baud; click again to disconnect (granted ports reconnect on load).
+USB accepts K/F/V lines alongside mouse input; `python3 emulator/tests/serial_check.py` checks parsing and connection behavior without hardware.
 
 Change the emulator only to fix bugs or when a task needs a new host feature, and keep
 it plain HTML/JS with no build step. Shaders live in `shaders/index.js` as
