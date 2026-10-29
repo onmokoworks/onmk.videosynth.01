@@ -10,7 +10,8 @@ window.SHADERS = [
 { name: 'TRUCHET', src: `
 // メインの模様。背景 #fffaf0 に正方形のマスを敷き詰め、全部のマスを同じ向きの 1/4 円（左下の角と右上の角が中心）で埋める。
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
-// 帯は太くしてあり、となりの帯とマスの真ん中で重なる。重なる所でどちらが上かはマスごとに入れ替わり、2色が交互に重なる（編み目）。
+// 弧は辺の真ん中から出て、となりの辺の真ん中へ抜ける。円より外へ膨らませて（スーパー楕円）、マスの真ん中でとなりの帯と
+// 大きく重なる。重なる所では上の帯が下の帯を完全に隠し、どちらが上かはマスごとに入れ替わる（2色が交互に重なる編み目）。
 // 帯を道路に見立てて、白っぽい玉 #f8f8ff が車のように帯に沿って左上から右下へ走る。下になった所では上の帯をくぐって隠れる。
 // 帯ごとに速さが違い、間隔もまばら。玉の右下に薄い影が落ちる。画面全体はずっと左上から右下へ流れる。
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
@@ -19,9 +20,12 @@ window.SHADERS = [
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
 uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
-uniform float p_width;  // @param 0.12 0.30 0.24 帯の太さ（半分の幅、マス単位）。0.21 より太いと重なる
+uniform float p_width;  // @param 0.08 0.30 0.17 帯の太さ（半分の幅、マス単位）
+uniform float p_bulge;  // @param 2.0 6.0 3.5 弧の膨らみ（2＝ふつうの円、大きいほど角ばってマスの真ん中に寄り、重なりが増える）
 
 float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
+// 角からの「膨らんだ距離」（スーパー楕円の半径）。v は角から見た位置（0..1 の正の値）
+float bulgeR(vec2 v){return pow(pow(v.x,p_bulge)+pow(v.y,p_bulge),1.0/p_bulge);}
 
 // 片方の弧の上で、点 q（マスの中の位置）にいちばん近い玉までの距離。
 // 帯は 左下の弧(x,y) → 右上の弧(x,y-1) → 左下の弧(x+1,y-1) → … と続くので、
@@ -29,11 +33,11 @@ float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
 float carDist(vec2 q,vec2 cell,bool bl){
   float band,U,rad;
   if(bl){
-    band=cell.x+cell.y;rad=length(q)-0.5;
+    band=cell.x+cell.y;rad=bulgeR(q)-0.5;
     U=2.0*cell.x+clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);            // 左の辺 → 下の辺
   }else{
-    vec2 r=q-vec2(1.0);band=cell.x+cell.y+1.0;rad=length(r)-0.5;
-    U=2.0*cell.x+1.0+clamp((atan(r.y,r.x)+3.1415927)/1.5707963,0.0,1.0);  // 上の辺 → 右の辺
+    vec2 r=vec2(1.0)-q;band=cell.x+cell.y+1.0;rad=bulgeR(r)-0.5;
+    U=2.0*cell.x+1.0+clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);       // 上の辺 → 右の辺
   }
   float v=p_roll*(0.6+0.8*hash(vec2(band,3.1)));                  // 帯ごとの速さ
   float c=U-v*u_time+hash(vec2(band,9.7))*p_gap;
@@ -49,8 +53,8 @@ vec3 ground(vec2 p,float px){
   bg=mix(bg,vec3(0.06,0.07,0.12),u_key[3]);                                       // K3 夜
   float w=p_width+0.05*u_key[1],rb=0.07+0.06*u_key[0];                            // K1 帯を太く、K0 玉を大きく
   vec2 cell=floor(p),q=p-cell;
-  float dBL=abs(length(q)-0.5);              // 左下の角が中心の弧（左の辺 ↔ 下の辺）
-  float dTR=abs(length(q-vec2(1.0))-0.5);    // 右上の角が中心の弧（上の辺 ↔ 右の辺）
+  float dBL=abs(bulgeR(q)-0.5);              // 左下の角が中心の弧（左の辺の真ん中 ↔ 下の辺の真ん中）
+  float dTR=abs(bulgeR(vec2(1.0)-q)-0.5);    // 右上の角が中心の弧（上の辺の真ん中 ↔ 右の辺の真ん中）
   // 斜めの帯の番号：左下の弧は cell.x+cell.y、右上の弧はその次の帯。偶数と奇数で色を分ける
   bool even=mod(cell.x+cell.y,2.0)<0.5;
   vec3 cBL=even?colA:colB, cTR=even?colB:colA;
