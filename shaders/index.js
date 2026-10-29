@@ -27,11 +27,11 @@ uniform float p_grain;  // @param 0.0 1.0 0.5 紙の粒（背景のざらざら�
 uniform float p_bulge;  // @param 2.0 4.0 2.6 弧の膨らみ（2＝ふつうの円、大きいほど角ばってマスの真ん中に寄り、重なりが増える）
 
 float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
-// 紙の粒。画面に固定（紙の上を模様が流れていく見え方）。細かい粒＋ゆるいムラ＋ところどころの繊維っぽい筋
+// 紙の粒。模様と一緒に流れる（模様が刷られた紙ごと動く見え方）。細かい粒＋ゆるいムラ＋ところどころの繊維っぽい筋
 float vnoise(vec2 v){vec2 i=floor(v),f=fract(v);f=f*f*(3.0-2.0*f);
   return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-float paper(){
-  vec2 fc=gl_FragCoord.xy*(360.0/u_resolution.y);     // 解像度が変わっても粒の大きさをそろえる
+float paper(vec2 p){
+  vec2 fc=p*72.0;                                      // マス単位の位置から（1マス＝72粒。K4 で寄ると粒も大きくなる）
   float g=hash(floor(fc))-0.5;                         // 細かい粒（1ピクセル）
   float m=vnoise(fc/38.0)+0.5*vnoise(fc/13.0)-0.75;    // ゆるいムラ
   float f=vnoise(vec2(fc.x/90.0,fc.y/2.5))-0.5;        // 横に伸びた繊維っぽい筋
@@ -64,7 +64,7 @@ vec3 ground(vec2 p,float px){
   vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941);
   vec3 ca=mix(colA,colB,u_key[2]),cb=mix(colB,colA,u_key[2]);colA=ca;colB=cb;   // K2 2色を入れ替える
   bg=mix(bg,vec3(0.06,0.07,0.12),u_key[3]);                                       // K3 夜
-  float pp=paper()*p_grain;
+  float pp=paper(p)*p_grain;
   bg*=1.0+pp;                                                                     // 背景に紙の粒
   float w=p_width+0.05*u_key[1],rb=0.07+0.06*u_key[0];                            // K1 帯を太く、K0 玉を大きく
   vec2 cell=floor(p),q=p-cell;
