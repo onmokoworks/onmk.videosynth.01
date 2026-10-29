@@ -7,17 +7,18 @@
 // log() keeps adding detail slower and slower, so turning "always makes it a bit better" and never breaks.
 window.SHADERS = [
 
-{ name: 'TRUCHET', map: {"p_scroll":{"src":"fader:0","inv":false},"p_roll":{"src":"fader:1","inv":false},"p_gap":{"src":"fader:2","inv":false},"p_width":{"src":"fader:3","inv":false},"p_bulge":{"src":"fader:4","inv":false}}, src: `
+{ name: 'TRUCHET', map: {"p_speed":{"src":"fader:0","inv":false},"p_roll":{"src":"fader:1","inv":false},"p_gap":{"src":"fader:2","inv":false},"p_width":{"src":"fader:3","inv":false},"p_bulge":{"src":"fader:4","inv":false}}, src: `
 // メインの模様。背景 #fffaf0 に正方形のマスを敷き詰め、全部のマスを同じ向きの 1/4 円（左下の角と右上の角が中心）で埋める。
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
 // 弧は辺の真ん中から出て、となりの辺の真ん中へ抜ける。円より外へ膨らませて（スーパー楕円）、マスの真ん中でとなりの帯と
 // 大きく重なる。重なる所では上の帯が下の帯を完全に隠し、どちらが上かはマスごとに入れ替わる（2色が交互に重なる編み目）。
 // 帯を道路に見立てて、白っぽい玉 #f8f8ff が車のように帯に沿って左上から右下へ走る。下になった所では上の帯をくぐって隠れる。
 // 帯ごとに速さが違い、間隔もまばら。玉の右下に薄い影が落ちる。画面全体はずっと左上から右下へ流れる。
-// フェーダー：F0 流れる速さ / F1 玉の速さ / F2 玉の間隔 / F3 帯の太さ / F4 弧の膨らみ
+// フェーダー：F0 全体の速さ（流れも玉も） / F1 玉の速さ / F2 玉の間隔 / F3 帯の太さ / F4 弧の膨らみ
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
 //   K0 玉が大きくなる / K1 帯が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
 //   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
+uniform float p_speed;  // @param 0.0 3.0 1.0 全体の速さ（流れと玉の両方にかかる。0 で止まる）
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
 uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
@@ -41,7 +42,7 @@ float carDist(vec2 q,vec2 cell,bool bl){
     U=2.0*cell.x+1.0+clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);       // 上の辺 → 右の辺
   }
   float v=p_roll*(0.6+0.8*hash(vec2(band,3.1)));                  // 帯ごとの速さ
-  float c=U-v*u_time+hash(vec2(band,9.7))*p_gap;
+  float c=U-v*u_time*p_speed+hash(vec2(band,9.7))*p_gap;
   float k=floor(c/p_gap+0.5);                                     // いちばん近い玉の番号
   if(hash(vec2(k,band+0.37))<0.35) return 1e3;                    // ところどころ玉がいない
   return length(vec2((c-k*p_gap)*0.7853982,rad));                 // 弧1本の長さは π/4
@@ -79,7 +80,7 @@ vec3 ground(vec2 p,float px){
 void main(){
   float cells=5.0-2.0*u_key[4];                      // 画面の縦に並ぶマスの数（K4 で寄る）
   float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
-  vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
+  vec2 p=gl_FragCoord.xy*px+u_time*p_speed*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
   vec3 c=ground(p,px);
   c=mix(c,vec3(dot(c,vec3(0.299,0.587,0.114))),u_key[6]);  // K6 白黒
   c=mix(c,vec3(1.0),0.7*u_key[7]);                          // K7 白く光る
