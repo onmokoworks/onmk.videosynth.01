@@ -42,34 +42,47 @@ float paper(vec2 p){
 // 角からの「膨らんだ距離」（スーパー楕円の半径）。v は角から見た位置（0..1 の正の値）
 float bulgeR(vec2 v){return pow(pow(v.x,p_bulge)+pow(v.y,p_bulge),1.0/p_bulge);}
 
-// 片方の弧の上で、点 q（マスの中の位置）にいちばん近い玉までの距離。
-// 帯は 左下の弧(x,y) → 右上の弧(x,y-1) → 左下の弧(x+1,y-1) → … と続くので、
-// 帯に沿った位置 U は 左下の弧なら 2x＋進み、右上の弧なら 2x+1＋進み（進みは弧の中で 0→1）。
-float carDist(vec2 q,vec2 cell,bool bl,float hang){
-  float band,n,f,rad;
+// 玉。帯は 左下の弧(x,y) → 右上の弧(x,y-1) → 左下の弧(x+1,y-1) → … と続く。弧の番号 n は 左下なら 2x、右上なら 2x+1。
+// 玉は帯の下側の縁にぶら下がる（左下の弧では内側、右上の弧では外側がいつも画面の下・左）。
+// 通り道の長さ：左下の弧 Li＝π/2·(0.5-hang)、右上の弧 Lo＝π/2·(0.5+hang)。玉は W（通り道の長さを重力でゆがめたもの）を
+// 一定の速さで進む。W＝それまでの長さ＋L·(f＋g·sin(πU)/π)、U＝n＋f。急な所（U が奇数）ほど速く、平らな所でゆっくり。
+float Wof(float n,float f,float hang){
+  float Li=1.5707963*(0.5-hang),Lo=1.5707963*(0.5+hang);
+  bool bl=mod(n,2.0)<0.5;
+  return floor(n/2.0)*(Li+Lo)+(bl?0.0:Li)+(bl?Li:Lo)*(f+p_grav*sin(3.1415927*(n+f))/3.1415927);
+}
+// 帯 band の上で W にいる玉の中心（画面のマス単位の座標）
+vec2 ballAt(float band,float W,float hang){
+  float Li=1.5707963*(0.5-hang),Lo=1.5707963*(0.5+hang);
+  float pr=floor(W/(Li+Lo)),rem=W-pr*(Li+Lo);
+  bool bl=rem<Li;
+  float n=2.0*pr+(bl?0.0:1.0),t=bl?rem/Li:(rem-Li)/Lo,sg=bl?1.0:-1.0;
+  float f=t;                                                      // f＋sg·g·sin(πf)/π＝t をニュートン法で解く
+  for(int i=0;i<3;i++){f-=(f+sg*p_grav*sin(3.1415927*f)/3.1415927-t)/(1.0+sg*p_grav*cos(3.1415927*f));}
+  f=clamp(f,0.0,1.0);
   if(bl){
-    band=cell.x+cell.y;rad=bulgeR(q)-0.5;n=2.0*cell.x;
-    f=clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);                 // 左の辺 → 下の辺
+    float a=n/2.0;vec2 corner=vec2(a,band-a);                     // 左下の角
+    float th=(1.0-f)*1.5707963;vec2 d=vec2(cos(th),sin(th));
+    vec2 nd=normalize(pow(max(abs(d),1e-4),vec2(p_bulge-1.0)));   // 膨らんだ弧の外向きの向き
+    return corner+d*(0.5/bulgeR(abs(d)))-nd*hang;                 // 内側にぶら下がる
   }else{
-    vec2 r=vec2(1.0)-q;band=cell.x+cell.y+1.0;rad=bulgeR(r)-0.5;n=2.0*cell.x+1.0;
-    f=clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);                     // 上の辺 → 右の辺
+    float a=(n-1.0)/2.0;vec2 corner=vec2(a,band-1.0-a)+1.0;       // 右上の角
+    float ph=f*1.5707963;vec2 d=vec2(cos(ph),sin(ph));
+    vec2 nd=normalize(pow(max(abs(d),1e-4),vec2(p_bulge-1.0)));
+    return corner-d*(0.5/bulgeR(abs(d)))-nd*hang;                 // 外側（角から遠い側）にぶら下がる
   }
-  // 玉は帯の下側にぶら下がる：左下の弧は内側（角の側）、右上の弧は外側がいつも画面の下・左になる。
-  // ぶら下がった通り道は、左下の弧で半径 0.5-hang（短い）、右上の弧で 0.5+hang（長い）の 1/4 円。
-  float side=bl?-hang:hang;
-  float L=1.5707963*(0.5+side);                                   // いまの弧の通り道の長さ
-  float base=floor(n/2.0)*1.5707963+(bl?0.0:1.5707963*(0.5-hang)); // ここまでの通り道の長さ（2本で π/2）
-  // 重力：帯は「平ら → 急 → 急 → 平ら …」をくり返す（n が偶数の始まりで平ら、奇数の始まりで真下向き）。
-  // 玉は W の上を一定の速さで進む。W は通り道の長さを 1+g·cos(πU) 倍にゆがめたもの（急な所ほど縮む＝速く進む）
-  float U=n+f;
-  float W=base+L*(f+p_grav*sin(3.1415927*U)/3.1415927);
-  float dW=1.0+p_grav*cos(3.1415927*U);
+}
+// 点 p から、そのマスの片方の弧の帯でいちばん近い玉までの距離（画面上のふつうの距離なので玉は真ん丸）
+float carDist(vec2 p,bool bl,float hang){
+  vec2 cell=floor(p),q=p-cell;
+  float band,n,f;
+  if(bl){band=cell.x+cell.y;n=2.0*cell.x;f=clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);}
+  else{vec2 r=vec2(1.0)-q;band=cell.x+cell.y+1.0;n=2.0*cell.x+1.0;f=clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);}
   float v=p_roll*0.7853982*(0.6+0.8*hash(vec2(band,3.1)));       // 帯ごとの速さ（通り道の長さ／秒）
-  float gap=p_gap*0.7853982;
-  float c=W-v*u_time*p_speed+hash(vec2(band,9.7))*gap;
-  float k=floor(c/gap+0.5);                                       // いちばん近い玉の番号
+  float gap=p_gap*0.7853982,sh=v*u_time*p_speed-hash(vec2(band,9.7))*gap;
+  float k=floor((Wof(n,f,hang)-sh)/gap+0.5);                      // いちばん近い玉の番号
   if(hash(vec2(k,band+0.37))<0.35) return 1e3;                    // ところどころ玉がいない
-  return length(vec2((c-k*gap)/dW,rad-side));                     // W の差を通り道の長さに戻す
+  return length(p-ballAt(band,k*gap+sh,hang));
 }
 
 // 模様そのもの。p はマス単位の座標、px は1ピクセルの大きさ
@@ -91,14 +104,14 @@ vec3 ground(vec2 p,float px){
   float dLo=blTop?dTR:dBL, dHi=blTop?dBL:dTR;
   vec3 cLo=blTop?cTR:cBL, cHi=blTop?cBL:cTR;
   float off=(2.5+9.0*u_key[5])*px*0.7071;                            // 影は画面の右下 45 度（K5 で遠くに）
-  vec2 qs=q+vec2(-off,off);
   vec3 ball=vec3(0.973,0.973,1.0);
   vec3 c=bg;
   // 下の帯 → 上の帯 → 玉（影→玉）の順に重ねる。玉は帯の外にぶら下がるので、帯の重なりより手前に描く
   c=mix(c,cLo,1.0-smoothstep(w-px,w+px,dLo));
   c=mix(c,cHi,1.0-smoothstep(w-px,w+px,dHi));
-  if(min(carDist(qs,cell,true,w+rb),carDist(qs,cell,false,w+rb))<rb) c=mix(c,vec3(0.0),0.22);
-  if(min(carDist(q,cell,true,w+rb),carDist(q,cell,false,w+rb))<rb) c=ball;
+  vec2 ps=p+vec2(-off,off);
+  if(min(carDist(ps,true,w+rb),carDist(ps,false,w+rb))<rb) c=mix(c,vec3(0.0),0.22);
+  if(min(carDist(p,true,w+rb),carDist(p,false,w+rb))<rb) c=ball;
   return c*(1.0+0.35*pp);                    // 帯と玉にも少しだけ粒を乗せて、紙に刷ったように
 }
 void main(){
