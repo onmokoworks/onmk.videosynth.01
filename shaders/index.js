@@ -7,13 +7,14 @@
 // log() keeps adding detail slower and slower, so turning "always makes it a bit better" and never breaks.
 window.SHADERS = [
 
-{ name: 'TRUCHET', src: `
+{ name: 'TRUCHET', map: {"p_scroll":{"src":"fader:0","inv":false},"p_roll":{"src":"fader:1","inv":false},"p_gap":{"src":"fader:2","inv":false},"p_width":{"src":"fader:3","inv":false},"p_bulge":{"src":"fader:4","inv":false}}, src: `
 // メインの模様。背景 #fffaf0 に正方形のマスを敷き詰め、全部のマスを同じ向きの 1/4 円（左下の角と右上の角が中心）で埋める。
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
 // 弧は辺の真ん中から出て、となりの辺の真ん中へ抜ける。円より外へ膨らませて（スーパー楕円）、マスの真ん中でとなりの帯と
 // 大きく重なる。重なる所では上の帯が下の帯を完全に隠し、どちらが上かはマスごとに入れ替わる（2色が交互に重なる編み目）。
 // 帯を道路に見立てて、白っぽい玉 #f8f8ff が車のように帯に沿って左上から右下へ走る。下になった所では上の帯をくぐって隠れる。
 // 帯ごとに速さが違い、間隔もまばら。玉の右下に薄い影が落ちる。画面全体はずっと左上から右下へ流れる。
+// フェーダー：F0 流れる速さ / F1 玉の速さ / F2 玉の間隔 / F3 帯の太さ / F4 弧の膨らみ
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
 //   K0 玉が大きくなる / K1 帯が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
 //   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
@@ -21,7 +22,7 @@ uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマ
 uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
 uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
 uniform float p_width;  // @param 0.08 0.30 0.17 帯の太さ（半分の幅、マス単位）
-uniform float p_bulge;  // @param 2.0 6.0 3.5 弧の膨らみ（2＝ふつうの円、大きいほど角ばってマスの真ん中に寄り、重なりが増える）
+uniform float p_bulge;  // @param 2.0 4.0 2.6 弧の膨らみ（2＝ふつうの円、大きいほど角ばってマスの真ん中に寄り、重なりが増える）
 
 float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
 // 角からの「膨らんだ距離」（スーパー楕円の半径）。v は角から見た位置（0..1 の正の値）
