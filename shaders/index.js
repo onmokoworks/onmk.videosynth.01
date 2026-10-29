@@ -12,7 +12,8 @@ window.SHADERS = [
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
 // 弧は辺の真ん中から出て、となりの辺の真ん中へ抜ける。円より外へ膨らませて（スーパー楕円）、マスの真ん中でとなりの帯と
 // 大きく重なる。重なる所では上の帯が下の帯を完全に隠し、どちらが上かはマスごとに入れ替わる（2色が交互に重なる編み目）。
-// 帯を道路に見立てて、白っぽい玉 #f8f8ff が車のように帯に沿って左上から右下へ走る。下になった所では上の帯をくぐって隠れる。
+// 帯を道路に見立てて、白っぽい玉 #f8f8ff が帯の下側の縁にぶら下がって（ロープウェイのように）左上から右下へ走る。
+// 玉は帯の重なりより手前に描く。
 // 帯ごとに速さが違い、間隔もまばら。玉の右下に薄い影が落ちる。画面全体はずっと左上から右下へ流れる。
 // フェーダー：F0 全体の速さ（流れも玉も） / F1 玉の速さ / F2 玉の間隔 / F3 帯の太さ / F4 弧の膨らみ
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
@@ -44,24 +45,31 @@ float bulgeR(vec2 v){return pow(pow(v.x,p_bulge)+pow(v.y,p_bulge),1.0/p_bulge);}
 // 片方の弧の上で、点 q（マスの中の位置）にいちばん近い玉までの距離。
 // 帯は 左下の弧(x,y) → 右上の弧(x,y-1) → 左下の弧(x+1,y-1) → … と続くので、
 // 帯に沿った位置 U は 左下の弧なら 2x＋進み、右上の弧なら 2x+1＋進み（進みは弧の中で 0→1）。
-float carDist(vec2 q,vec2 cell,bool bl){
-  float band,U,rad;
+float carDist(vec2 q,vec2 cell,bool bl,float hang){
+  float band,n,f,rad;
   if(bl){
-    band=cell.x+cell.y;rad=bulgeR(q)-0.5;
-    U=2.0*cell.x+clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);            // 左の辺 → 下の辺
+    band=cell.x+cell.y;rad=bulgeR(q)-0.5;n=2.0*cell.x;
+    f=clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);                 // 左の辺 → 下の辺
   }else{
-    vec2 r=vec2(1.0)-q;band=cell.x+cell.y+1.0;rad=bulgeR(r)-0.5;
-    U=2.0*cell.x+1.0+clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);       // 上の辺 → 右の辺
+    vec2 r=vec2(1.0)-q;band=cell.x+cell.y+1.0;rad=bulgeR(r)-0.5;n=2.0*cell.x+1.0;
+    f=clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);                     // 上の辺 → 右の辺
   }
-  float v=p_roll*(0.6+0.8*hash(vec2(band,3.1)));                  // 帯ごとの速さ
-  // 重力：帯は「平ら → 急 → 急 → 平ら …」をくり返す（U が偶数で平ら、奇数で真下向き）。
-  // 玉は W(U) の上を一定の速さで進むことにして、W を U に対してゆがめる。W' が小さい所（急な所）ほど U が速く進む。
-  float W=U+p_grav*sin(3.1415927*U)/3.1415927;
-  float dW=1.0+p_grav*cos(3.1415927*U);                           // W の傾き（平らな所で大きい＝ゆっくり）
-  float c=W-v*u_time*p_speed+hash(vec2(band,9.7))*p_gap;
-  float k=floor(c/p_gap+0.5);                                     // いちばん近い玉の番号
+  // 玉は帯の下側にぶら下がる：左下の弧は内側（角の側）、右上の弧は外側がいつも画面の下・左になる。
+  // ぶら下がった通り道は、左下の弧で半径 0.5-hang（短い）、右上の弧で 0.5+hang（長い）の 1/4 円。
+  float side=bl?-hang:hang;
+  float L=1.5707963*(0.5+side);                                   // いまの弧の通り道の長さ
+  float base=floor(n/2.0)*1.5707963+(bl?0.0:1.5707963*(0.5-hang)); // ここまでの通り道の長さ（2本で π/2）
+  // 重力：帯は「平ら → 急 → 急 → 平ら …」をくり返す（n が偶数の始まりで平ら、奇数の始まりで真下向き）。
+  // 玉は W の上を一定の速さで進む。W は通り道の長さを 1+g·cos(πU) 倍にゆがめたもの（急な所ほど縮む＝速く進む）
+  float U=n+f;
+  float W=base+L*(f+p_grav*sin(3.1415927*U)/3.1415927);
+  float dW=1.0+p_grav*cos(3.1415927*U);
+  float v=p_roll*0.7853982*(0.6+0.8*hash(vec2(band,3.1)));       // 帯ごとの速さ（通り道の長さ／秒）
+  float gap=p_gap*0.7853982;
+  float c=W-v*u_time*p_speed+hash(vec2(band,9.7))*gap;
+  float k=floor(c/gap+0.5);                                       // いちばん近い玉の番号
   if(hash(vec2(k,band+0.37))<0.35) return 1e3;                    // ところどころ玉がいない
-  return length(vec2((c-k*p_gap)/dW*0.7853982,rad));              // W の差を U の差に戻す。弧1本の長さはだいたい π/4
+  return length(vec2((c-k*gap)/dW,rad-side));                     // W の差を通り道の長さに戻す
 }
 
 // 模様そのもの。p はマス単位の座標、px は1ピクセルの大きさ
@@ -86,13 +94,11 @@ vec3 ground(vec2 p,float px){
   vec2 qs=q+vec2(-off,off);
   vec3 ball=vec3(0.973,0.973,1.0);
   vec3 c=bg;
-  // 下の帯 → その上の玉 → 上の帯 → その上の玉、の順に重ねる
+  // 下の帯 → 上の帯 → 玉（影→玉）の順に重ねる。玉は帯の外にぶら下がるので、帯の重なりより手前に描く
   c=mix(c,cLo,1.0-smoothstep(w-px,w+px,dLo));
-  if(carDist(qs,cell,!blTop)<rb) c=mix(c,vec3(0.0),0.22);
-  if(carDist(q,cell,!blTop)<rb) c=ball;
   c=mix(c,cHi,1.0-smoothstep(w-px,w+px,dHi));
-  if(carDist(qs,cell,blTop)<rb) c=mix(c,vec3(0.0),0.22);
-  if(carDist(q,cell,blTop)<rb) c=ball;
+  if(min(carDist(qs,cell,true,w+rb),carDist(qs,cell,false,w+rb))<rb) c=mix(c,vec3(0.0),0.22);
+  if(min(carDist(q,cell,true,w+rb),carDist(q,cell,false,w+rb))<rb) c=ball;
   return c*(1.0+0.35*pp);                    // 帯と玉にも少しだけ粒を乗せて、紙に刷ったように
 }
 void main(){
