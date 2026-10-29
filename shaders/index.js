@@ -23,9 +23,20 @@ uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマ
 uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
 uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
 uniform float p_width;  // @param 0.08 0.30 0.17 帯の太さ（半分の幅、マス単位）
+uniform float p_grain;  // @param 0.0 1.0 0.5 紙の粒（背景のざらざら。帯にも少しだけ乗る）
 uniform float p_bulge;  // @param 2.0 4.0 2.6 弧の膨らみ（2＝ふつうの円、大きいほど角ばってマスの真ん中に寄り、重なりが増える）
 
 float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
+// 紙の粒。画面に固定（紙の上を模様が流れていく見え方）。細かい粒＋ゆるいムラ＋ところどころの繊維っぽい筋
+float vnoise(vec2 v){vec2 i=floor(v),f=fract(v);f=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+float paper(){
+  vec2 fc=gl_FragCoord.xy*(360.0/u_resolution.y);     // 解像度が変わっても粒の大きさをそろえる
+  float g=hash(floor(fc))-0.5;                         // 細かい粒（1ピクセル）
+  float m=vnoise(fc/38.0)+0.5*vnoise(fc/13.0)-0.75;    // ゆるいムラ
+  float f=vnoise(vec2(fc.x/90.0,fc.y/2.5))-0.5;        // 横に伸びた繊維っぽい筋
+  return 0.07*g+0.06*m+0.03*f;                         // だいたい -0.1..0.1
+}
 // 角からの「膨らんだ距離」（スーパー楕円の半径）。v は角から見た位置（0..1 の正の値）
 float bulgeR(vec2 v){return pow(pow(v.x,p_bulge)+pow(v.y,p_bulge),1.0/p_bulge);}
 
@@ -53,6 +64,8 @@ vec3 ground(vec2 p,float px){
   vec3 colA=vec3(0.498,1.0,0.831),colB=vec3(0.0,0.749,1.0),bg=vec3(1.0,0.980,0.941);
   vec3 ca=mix(colA,colB,u_key[2]),cb=mix(colB,colA,u_key[2]);colA=ca;colB=cb;   // K2 2色を入れ替える
   bg=mix(bg,vec3(0.06,0.07,0.12),u_key[3]);                                       // K3 夜
+  float pp=paper()*p_grain;
+  bg*=1.0+pp;                                                                     // 背景に紙の粒
   float w=p_width+0.05*u_key[1],rb=0.07+0.06*u_key[0];                            // K1 帯を太く、K0 玉を大きく
   vec2 cell=floor(p),q=p-cell;
   float dBL=abs(bulgeR(q)-0.5);              // 左下の角が中心の弧（左の辺の真ん中 ↔ 下の辺の真ん中）
@@ -75,7 +88,7 @@ vec3 ground(vec2 p,float px){
   c=mix(c,cHi,1.0-smoothstep(w-px,w+px,dHi));
   if(carDist(qs,cell,blTop)<rb) c=mix(c,vec3(0.0),0.22);
   if(carDist(q,cell,blTop)<rb) c=ball;
-  return c;
+  return c*(1.0+0.35*pp);                    // 帯と玉にも少しだけ粒を乗せて、紙に刷ったように
 }
 void main(){
   float cells=5.0-2.0*u_key[4];                      // 画面の縦に並ぶマスの数（K4 で寄る）
