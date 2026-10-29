@@ -146,6 +146,38 @@ ul{padding-left:20px}
 </div>
 
 <h2>3. メイン（Pico ＋ Pi Zero v1.3）</h2>
+<div class="dia" id="diaPZ"></div>
+<script>
+// Pi Zero を上から見た図（部品面、SD カードが左、端子が下）。使うピンだけ色をつけ、説明は下の凡例にまとめる
+(function(){
+ const USE={2:['5V（電源）','#e58a1f'],6:['GND ← Pico GND（3番）','#555'],10:['RXD ← Pico GP0（1番）','#8a5cc4'],
+  12:['液晶 BLK','#2a8a78'],17:['液晶 VCC (3V3)','#d6453d'],18:['液晶 RES','#2a8a78'],19:['液晶 SDA','#2a8a78'],
+  20:['液晶 GND','#555'],22:['液晶 DC','#2a8a78'],23:['液晶 SCL','#2a8a78'],24:['液晶 CS','#2a8a78']};
+ const S=26,BX=40,BY=60,BW=20*S+150,BH=230,X0=BX+90,Y0=BY+30;
+ let o='<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg">';
+ o+='<text x="20" y="30" class="bt">Pi Zero v1.3 を上から（部品のある面。SD カードが左、端子が下）</text>';
+ o+=`<rect x="${BX}" y="${BY}" width="${BW}" height="${BH}" rx="16" fill="#2f7d3b"/>`;
+ o+=`<rect x="${BX-14}" y="${BY+95}" width="44" height="60" rx="3" fill="#bbb"/><text x="${BX-6}" y="${BY+130}" font-size="12" fill="#222">SD</text>`;
+ [['mini HDMI',12.4,56],['USB',41.4,34],['PWR',54,34]].forEach(([n,mm,w])=>{const x=BX+mm/65*BW;
+  o+=`<rect x="${x-w/2}" y="${BY+BH-14}" width="${w}" height="24" rx="3" fill="#bbb"/><text x="${x}" y="${BY+BH+28}" text-anchor="middle" font-size="12" class="pl">${n}</text>`;});
+ for(let i=0;i<20;i++){const x=X0+i*S;
+  [[2*i+2,Y0],[2*i+1,Y0+S]].forEach(([n,y])=>{const u=USE[n],big=(n===6||n===10);
+   o+=`<circle cx="${x}" cy="${y}" r="${big?11:9}" fill="${u?u[1]:'#e8e8e8'}" stroke="${big?'#ff0':'#fff'}" stroke-width="${big?3:1.5}"/>`;
+   o+=`<text x="${x}" y="${y+4}" text-anchor="middle" font-size="9" fill="${u?'#fff':'#666'}" font-weight="700">${n}</text>`;});}
+ o+=`<text x="${BX+10}" y="${Y0+4}" font-size="11" fill="#fff">縁の列</text><text x="${BX+10}" y="${Y0+S+4}" font-size="11" fill="#fff">内側</text>`;
+ o+=`<text x="${X0-6}" y="${Y0+S+30}" font-size="11" fill="#fff">↑ 1番</text>`;
+ // 今つなぐ2本に大きな矢印
+ [[6,'GND'],[10,'RXD']].forEach(([n,t])=>{const x=X0+((n-2)/2)*S;o+=`<text x="${x}" y="${Y0-22}" text-anchor="middle" font-size="13" font-weight="700" fill="#c9a400">▼ ${t}</text>`;});
+ // 凡例
+ const groups=[['いまつなぐ（Pico → Pi Zero）',[10,6]],['あとで：液晶',[17,20,23,19,24,22,18,12]],['あとで：電源',[2]]];
+ let y=BY+BH+60;
+ groups.forEach(([title,ns])=>{o+=`<text x="20" y="${y}" class="bt">${title}</text>`;y+=8;
+  ns.forEach((n,j)=>{const col=j%2,x=30+col*330,yy=y+14+Math.floor(j/2)*20;const [lab,c]=USE[n];
+   o+=`<circle cx="${x}" cy="${yy-4}" r="8" fill="${c}"/><text x="${x}" y="${yy}" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">${n}</text><text x="${x+16}" y="${yy}" font-size="13" class="pl">${n}番：${lab}</text>`;});
+  y+=14+Math.ceil(ns.length/2)*20+10;});
+ o+='</svg>';document.getElementById('diaPZ').innerHTML=o;
+})();
+</script>
 <div class="dia" id="diaM"></div>
 <div class="grid">
 <div class="card"><h3>Pico：メインのつまみ</h3>
