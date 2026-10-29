@@ -13,7 +13,7 @@ window.SHADERS = [
 // 弧は辺の真ん中から出て、となりの辺の真ん中へ抜ける。円より外へ膨らませて（スーパー楕円）、マスの真ん中でとなりの帯と
 // 大きく重なる。重なる所では上の帯が下の帯を完全に隠し、どちらが上かはマスごとに入れ替わる（2色が交互に重なる編み目）。
 // 帯を道路に見立てて、白っぽい玉 #f8f8ff が帯の下側の縁にぶら下がって（ロープウェイのように）左上から右下へ走る。
-// 玉は帯の重なりより手前に描く。
+// 玉は自分の帯と同じ層にいて、帯が下にくぐる所では一緒に隠れる。
 // 帯ごとに速さが違い、間隔もまばら。玉の右下に薄い影が落ちる。画面全体はずっと左上から右下へ流れる。
 // フェーダー：F0 全体の速さ（流れも玉も） / F1 玉の速さ / F2 玉の間隔 / F3 帯の太さ / F4 弧の膨らみ
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
@@ -106,12 +106,15 @@ vec3 ground(vec2 p,float px){
   float off=(2.5+9.0*u_key[5])*px*0.7071;                            // 影は画面の右下 45 度（K5 で遠くに）
   vec3 ball=vec3(0.973,0.973,1.0);
   vec3 c=bg;
-  // 下の帯 → 上の帯 → 玉（影→玉）の順に重ねる。玉は帯の外にぶら下がるので、帯の重なりより手前に描く
-  c=mix(c,cLo,1.0-smoothstep(w-px,w+px,dLo));
-  c=mix(c,cHi,1.0-smoothstep(w-px,w+px,dHi));
+  // 下の帯 → その帯の玉 → 上の帯 → その帯の玉、の順に重ねる。
+  // 玉は自分の帯と同じ層にいるので、帯が上の帯の下にくぐる所では、ぶら下がった玉も一緒に隠れる（宙に浮いて見えない）
   vec2 ps=p+vec2(-off,off);
-  if(min(carDist(ps,true,w+rb),carDist(ps,false,w+rb))<rb) c=mix(c,vec3(0.0),0.22);
-  if(min(carDist(p,true,w+rb),carDist(p,false,w+rb))<rb) c=ball;
+  c=mix(c,cLo,1.0-smoothstep(w-px,w+px,dLo));
+  if(carDist(ps,!blTop,w+rb)<rb) c=mix(c,vec3(0.0),0.22);
+  if(carDist(p,!blTop,w+rb)<rb) c=ball;
+  c=mix(c,cHi,1.0-smoothstep(w-px,w+px,dHi));
+  if(carDist(ps,blTop,w+rb)<rb) c=mix(c,vec3(0.0),0.22);
+  if(carDist(p,blTop,w+rb)<rb) c=ball;
   return c*(1.0+0.35*pp);                    // 帯と玉にも少しだけ粒を乗せて、紙に刷ったように
 }
 void main(){
