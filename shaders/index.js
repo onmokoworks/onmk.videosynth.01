@@ -12,21 +12,12 @@ window.SHADERS = [
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
 // 白っぽい玉 #f8f8ff が帯の上を転がり、右下に薄い影が落ちる。
 // ・画面全体がずっと左上から右下へ流れる。
-// ・回る単位の正方形は、模様のマスから斜めに 1/4 マスずらしてある（帯が正方形の枠を真ん中ではない位置で横切る）。
-//   ときどきランダムに1つの正方形の中身が、その場で画面の面内で 90 度回る。正方形の枠は動かない。
-//   回った分はそのまま残るので、時間とともに斜めの波がちぎれて、トルシェ模様のようにばらけていく。
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
 //   K0 玉が大きくなる / K1 帯が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
 //   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
-uniform float p_every;  // @param 5.0 120.0 30.0 1つの正方形が回る平均の間隔（秒）。小さいほど、ばらけるのが早い
-uniform float p_flip;   // @param 0.6 3.0 1.4 1回（90 度）回るのにかける時間（秒）
 uniform float p_roll;   // @param 0.0 2.0 0.5 玉の速さ（1秒に進む弧の数）
 uniform float p_width;  // @param 0.08 0.24 0.17 帯の太さ（半分の幅、マス単位）
-
-float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
-float smoother(float f){return f*f*f*(f*(f*6.0-15.0)+10.0);}
-mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
 
 // 模様そのもの（回す前の世界）。p はマス単位の座標、px は1ピクセルの大きさ
 vec3 ground(vec2 p,float px){
@@ -52,24 +43,11 @@ vec3 ground(vec2 p,float px){
   if(min(length(q-B1),length(q-B2))<rb) c=vec3(0.973,0.973,1.0);
   return c;
 }
-// 回る正方形の予定表（正方形ごとにランダムな間隔とずれ）。x = いまの回転の進み 0..1（回っていなければ 1）、
-// y = 着地済みの回数（向き＝y×90 度）
-vec2 schedule(vec2 sq){
-  float I=p_every*(0.6+0.8*hash(sq+1.3));
-  float tt=u_time-(2.0+hash(sq+7.1)*p_every*1.5);    // 最初に回る時刻までは全部そろったまま
-  if(tt<0.0) return vec2(1.0,0.0);
-  float n=floor(tt/I),f=(tt-n*I)/p_flip;
-  return f<1.0?vec2(f,n):vec2(1.0,n+1.0);
-}
 void main(){
   float cells=5.0-2.0*u_key[4];                      // 画面の縦に並ぶマスの数（K4 で寄る）
   float px=cells/u_resolution.y;                     // 1ピクセルの大きさ（マス単位）
   vec2 p=gl_FragCoord.xy*px+u_time*p_scroll*vec2(-1.0,1.0);   // 左上から右下へ流れる
-  // 回る正方形は 1/4 マスずらした格子：正方形 sq は [sq+0.25, sq+1.25]、中心は sq+0.75
-  vec2 sq=floor(p-0.25),ctr=sq+0.75;
-  vec2 k=schedule(sq);
-  float ang=(k.x<1.0?k.y+smoother(k.x):k.y)*1.5707963;      // 着地済みの向き（回っている間はそこから 90 度へ）
-  vec3 c=ground(ctr+rot(-ang)*(p-ctr),px);                  // 正方形の枠の中で、模様だけを回す
+  vec3 c=ground(p,px);
   c=mix(c,vec3(dot(c,vec3(0.299,0.587,0.114))),u_key[6]);  // K6 白黒
   c=mix(c,vec3(1.0),0.7*u_key[7]);                          // K7 白く光る
   gl_FragColor=vec4(c,1.0);
