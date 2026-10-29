@@ -30,7 +30,9 @@ def run():
         last_tick = tick
         changed, bits = sample_keys(pins, keys, now_ms)
         if changed or now_ms - last_send >= 100:
-            uart.write(encode_keys(bits))
+            line = encode_keys(bits)
+            uart.write(line)
+            print(line, end='')  # same line on USB, so the emulator can read the real keys (Web Serial)
             last_send = now_ms
         time.sleep_ms(1)
 
