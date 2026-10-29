@@ -21,6 +21,7 @@ window.SHADERS = [
 uniform float p_speed;  // @param 0.0 3.0 1.0 全体の速さ（流れと玉の両方にかかる。0 で止まる）
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
 uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
+uniform float p_grav;   // @param 0.0 0.9 0.6 重力の強さ（急な所で速く、平らな所でゆっくり。0 で一定の速さ）
 uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
 uniform float p_width;  // @param 0.08 0.30 0.17 帯の太さ（半分の幅、マス単位）
 uniform float p_grain;  // @param 0.0 1.0 0.5 紙の粒（背景のざらざら。帯にも少しだけ乗る）
@@ -53,10 +54,14 @@ float carDist(vec2 q,vec2 cell,bool bl){
     U=2.0*cell.x+1.0+clamp(atan(r.y,r.x)/1.5707963,0.0,1.0);       // 上の辺 → 右の辺
   }
   float v=p_roll*(0.6+0.8*hash(vec2(band,3.1)));                  // 帯ごとの速さ
-  float c=U-v*u_time*p_speed+hash(vec2(band,9.7))*p_gap;
+  // 重力：帯は「平ら → 急 → 急 → 平ら …」をくり返す（U が偶数で平ら、奇数で真下向き）。
+  // 玉は W(U) の上を一定の速さで進むことにして、W を U に対してゆがめる。W' が小さい所（急な所）ほど U が速く進む。
+  float W=U+p_grav*sin(3.1415927*U)/3.1415927;
+  float dW=1.0+p_grav*cos(3.1415927*U);                           // W の傾き（平らな所で大きい＝ゆっくり）
+  float c=W-v*u_time*p_speed+hash(vec2(band,9.7))*p_gap;
   float k=floor(c/p_gap+0.5);                                     // いちばん近い玉の番号
   if(hash(vec2(k,band+0.37))<0.35) return 1e3;                    // ところどころ玉がいない
-  return length(vec2((c-k*p_gap)*0.7853982,rad));                 // 弧1本の長さは π/4
+  return length(vec2((c-k*p_gap)/dW*0.7853982,rad));              // W の差を U の差に戻す。弧1本の長さはだいたい π/4
 }
 
 // 模様そのもの。p はマス単位の座標、px は1ピクセルの大きさ
