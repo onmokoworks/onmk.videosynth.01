@@ -92,7 +92,7 @@ ul{padding-left:20px}
 <script>
 // キーの並び（表・裏）と、RP2350-PiZero のヘッダのどこに挿すかの図
 (function(){
- const KP=[2,3,4,14,5,17,18,27,22,23,24,11];          // キー番号 0..11 → GP
+ const KP=[5,7,9,21,18,8,1,20,22,23,24,11];          // キー番号 0..11 → GP（10/29 実配線）
  const NM=['T0','T1','T2','T3','K0','K1','K2','K3','K4','K5','K6','K7'];
  const COL=['#e0653a','#e0653a','#e0653a','#e0653a','#2a8a78','#2a8a78','#2a8a78','#2a8a78','#3b82c4','#3b82c4','#3b82c4','#3b82c4'];
  // ヘッダ（ラベル面＝基板の裏から見た並び。写真 IMG_6490 と同じ向き）[左列, 右列]
@@ -133,10 +133,10 @@ ul{padding-left:20px}
 <div class="grid">
 <div class="card"><h3>キー・TAP</h3>
 <table><tr><th>部品</th><th>RP2350-PiZero</th></tr>
-<tr><td>上の段（左から）＝ TAP 0〜3</td><td><span class="pin">GP2 / GP3 / GP4 / GP14</span></td></tr>
-<tr><td>真ん中の段（左から）＝ キー 0〜3</td><td><span class="pin">GP5 / GP17 / GP18 / GP27</span></td></tr>
+<tr><td>上の段（左から）＝ TAP 0〜3</td><td><span class="pin">GP5 / GP7 / GP9 / GP21</span></td></tr>
+<tr><td>真ん中の段（左から）＝ キー 0〜3</td><td><span class="pin">GP18 / GP8 / GP1 / GP20</span></td></tr>
 <tr><td>下の段（左から）＝ キー 4〜7</td><td><span class="pin">GP22 / GP23 / GP24 / GP11</span></td></tr></table>
-<p>どれも RP2350-PiZero のヘッダの上から10段目までにあるピン（線が短くまとまる）。<b>全部のキーの上側の足を GND の数珠つなぎ</b>、下側の足をそれぞれの GP へ。<b>GND は各段（上・中・下）からボードの GND へ1本ずつ</b>（段の間の渡り線だけだと切れやすい。10/28 に上・中段が無反応→各段直結で解決、12キー全部 OK）。</p>
+<p>10/29 に短い線で配線し直した実際のピン（1つずつ押して確認済み）。<b>全部のキーの上側の足を GND の数珠つなぎ</b>、下側の足をそれぞれの GP へ。<b>GND は各段（上・中・下）からボードの GND へ1本ずつ</b>（段の間の渡り線だけだと切れやすい。10/28 に上・中段が無反応→各段直結で解決、12キー全部 OK）。</p>
 <p>スイッチの<b>片足 → GP</b>、<b>もう片足 → GND</b>。抵抗はいらない（内蔵のプルアップを使う）。基板にその GP が出ていなければ、空いている別の GP に変えて教えてください（プログラム側で合わせます）。</p></div>
 <div class="card"><h3>DATA 3 ジャック</h3>
 <table><tr><th>ジャック</th><th>RP2350-PiZero</th></tr>
@@ -272,7 +272,7 @@ function Dia(id,W,H){
 // ---- 2. keys box ----
 {const d=Dia('diaK',900,470);
  const names=['TAP 0（上段 左）','TAP 1','TAP 2','TAP 3（上段 右）','キー 0（中段 左）','キー 1','キー 2','キー 3（中段 右）','キー 4（下段 左）','キー 5','キー 6','キー 7（下段 右）'];
- const KP=[2,3,4,14,5,17,18,27,22,23,24,11];const pins=names.map((n,i)=>['k'+i,`GP${KP[i]}`]);
+ const KP=[5,7,9,21,18,8,1,20,22,23,24,11];const pins=names.map((n,i)=>['k'+i,`GP${KP[i]}`]);
  const P=d.block(20,20,170,'RP2350-PiZero',[],[...pins,['g','GND']],30);
  d.flag(P.g,'GND');
  names.forEach((n,i)=>{const s=d.sw(330,P['k'+i].y,n);d.wire(P['k'+i],s.p,C.dig)});
