@@ -10,14 +10,39 @@ window.SHADERS = [
 { name: 'TRUCHET', src: `
 // メインの模様。背景 #fffaf0 に正方形のマスを敷き詰め、全部のマスを同じ向きの 1/4 円（左下の角と右上の角が中心）で埋める。
 // 同じ向きに並べると、帯は左上から右下へ波打つ斜めの線になる。その斜めの帯を1本おきに #7fffd4 / #00bfff で塗り分ける。
-// 白っぽい玉 #f8f8ff が帯の上を転がり、右下に薄い影が落ちる。
+// 帯を道路に見立てて、白っぽい玉 #f8f8ff が車のように帯に沿って左上から右下へ走る。帯ごとに速さが違い、
+// 間隔もまばら（ところどころ空いている）。玉の右下に薄い影が落ちる。
 // ・画面全体がずっと左上から右下へ流れる。
 // キー（押している間だけ効く。離すと0.2秒で戻る）：
 //   K0 玉が大きくなる / K1 帯が太くなる / K2 2色が入れ替わる / K3 夜（背景が暗くなる）
 //   K4 寄る（マスが大きくなる） / K5 影が遠くなる（浮き上がって見える） / K6 白黒 / K7 白く光る
 uniform float p_scroll; // @param 0.0 1.0 0.2 流れる速さ（1秒に進むマス数）
-uniform float p_roll;   // @param 0.0 2.0 0.5 玉の速さ（1秒に進む弧の数）
+uniform float p_roll;   // @param 0.0 2.0 0.6 玉の速さ（1秒に進む弧の数の平均）
+uniform float p_gap;    // @param 1.5 8.0 3.0 玉どうしの間隔（弧の数）
 uniform float p_width;  // @param 0.08 0.24 0.17 帯の太さ（半分の幅、マス単位）
+
+float hash(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5453);}
+
+// 点 p にいちばん近い玉までの距離。帯（道路）に沿った位置 U で玉を並べる。
+// 帯は 左下の弧(x,y) → 右上の弧(x,y-1) → 左下の弧(x+1,y-1) → … と続くので、
+// 沿った位置は 左下の弧なら 2x＋進み、右上の弧なら 2x+1＋進み（進みは弧の中で 0→1）。
+float carDist(vec2 p){
+  vec2 cell=floor(p),q=p-cell;
+  float rBL=length(q),rTR=length(q-vec2(1.0));
+  float band,U,rad;
+  if(abs(rBL-0.5)<abs(rTR-0.5)){
+    band=cell.x+cell.y;rad=rBL-0.5;
+    U=2.0*cell.x+clamp(1.0-atan(q.y,q.x)/1.5707963,0.0,1.0);        // 左の辺 → 下の辺
+  }else{
+    vec2 r=q-vec2(1.0);band=cell.x+cell.y+1.0;rad=rTR-0.5;
+    U=2.0*cell.x+1.0+clamp((atan(r.y,r.x)+3.1415927)/1.5707963,0.0,1.0);  // 上の辺 → 右の辺
+  }
+  float v=p_roll*(0.6+0.8*hash(vec2(band,3.1)));                  // 帯ごとの速さ
+  float c=U-v*u_time+hash(vec2(band,9.7))*p_gap;
+  float k=floor(c/p_gap+0.5);                                     // いちばん近い玉の番号
+  if(hash(vec2(k,band+0.37))<0.35) return 1e3;                    // ところどころ玉がいない
+  return length(vec2((c-k*p_gap)*0.7853982,rad));                 // 弧1本の長さは π/4
+}
 
 // 模様そのもの（回す前の世界）。p はマス単位の座標、px は1ピクセルの大きさ
 vec3 ground(vec2 p,float px){
@@ -34,13 +59,10 @@ vec3 ground(vec2 p,float px){
   vec3 c=bg;
   c=mix(c,cBL,1.0-smoothstep(w-px,w+px,dBL));
   c=mix(c,cTR,1.0-smoothstep(w-px,w+px,dTR));
-  // 玉：2本の弧の上を、帯の流れる向き（左上→右下）に転がる。影は画面の右下 45 度
-  float s=fract(u_time*p_roll),t1=3.1415927-s*1.5707963,t2=1.5707963*(1.0-s);
-  vec2 B1=vec2(1.0)+0.5*vec2(cos(t1+1.5707963),sin(t1+1.5707963)),B2=0.5*vec2(cos(t2),sin(t2));
+  // 玉と影（影は画面の右下 45 度）
   float off=(2.5+9.0*u_key[5])*px*0.7071;                            // K5 影を遠くに
-  vec2 qs=q+vec2(-off,off);
-  if(min(length(qs-B1),length(qs-B2))<rb) c=mix(c,vec3(0.0),0.22);
-  if(min(length(q-B1),length(q-B2))<rb) c=vec3(0.973,0.973,1.0);
+  if(carDist(p+vec2(-off,off))<rb) c=mix(c,vec3(0.0),0.22);
+  if(carDist(p)<rb) c=vec3(0.973,0.973,1.0);
   return c;
 }
 void main(){
